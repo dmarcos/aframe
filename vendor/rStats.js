@@ -3,13 +3,12 @@
 
 ( function () {
 
-    if ( 'performance' in window == false ) {
+    // prepare base perf object
+    if ( typeof window.performance === 'undefined' ) {
         window.performance = {};
     }
 
-    var performance = window.performance;
-
-    if ( 'now' in performance == false ) {
+    if ( !window.performance.now ) {
 
         var nowOffset = Date.now();
 
@@ -17,18 +16,18 @@
             nowOffset = performance.timing.navigationStart;
         }
 
-        performance.now = function now () {
+        window.performance.now = function now () {
             return Date.now() - nowOffset;
         };
 
     }
 
-    if( !performance.mark ) {
-        performance.mark = function(){}
+    if( !window.performance.mark ) {
+        window.performance.mark = function(){}
     }
 
-    if( !performance.measure ) {
-        performance.measure = function(){}
+    if( !window.performance.measure ) {
+        window.performance.measure = function(){}
     }
 
 } )();

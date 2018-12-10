@@ -1,5 +1,5 @@
-/* .a-fullscreen means not embedded. */
-html.a-fullscreen {
+/* Applied to the html element */
+.a-html {
   bottom: 0;
   left: 0;
   position: fixed;
@@ -7,28 +7,13 @@ html.a-fullscreen {
   top: 0;
 }
 
-html.a-fullscreen body {
+/* Applied to the body element */
+.a-body {
   height: 100%;
   margin: 0;
   overflow: hidden;
   padding: 0;
   width: 100%;
-}
-
-/* Class is removed when doing <a-scene embedded>. */
-html.a-fullscreen .a-canvas {
-  width: 100% !important;
-  height: 100% !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  position: fixed !important;
-}
-
-html:not(.a-fullscreen) .a-enter-vr {
-  right: 5px;
-  bottom: 5px;
 }
 
 /* In chrome mobile the user agent stylesheet set it to white  */
@@ -50,8 +35,27 @@ html:not(.a-fullscreen) .a-enter-vr {
 
 .a-canvas.a-grab-cursor:hover {
   cursor: grab;
-  cursor: -moz-grab;
+  cursor: -moz-grabbing;
   cursor: -webkit-grab;
+}
+
+.a-grabbing,
+.a-canvas.a-grab-cursor:active {
+  cursor: grabbing;
+  cursor: -moz-grabbing;
+  cursor: -webkit-grabbing;
+}
+
+// Class is removed when doing <a-scene embedded>.
+.a-canvas.fullscreen {
+  width: 100% !important;
+  height: 100% !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 999999 !important;
+  position: fixed !important;
 }
 
 .a-inspector-loader {
@@ -66,7 +70,7 @@ html:not(.a-fullscreen) .a-enter-vr {
   font-family: Roboto,sans-serif;
   text-align: center;
   z-index: 99999;
-  width: 204px;
+  width: 174px;
 }
 
 /* Inspector loader animation */
@@ -127,14 +131,21 @@ a-scene audio {
 }
 
 .a-enter-vr {
+  bottom: 5px;
   font-family: sans-serif, monospace;
   font-size: 13px;
   width: 100%;
   font-weight: 200;
   line-height: 16px;
+  height: 10%;
   position: absolute;
   right: 20px;
   bottom: 20px;
+}
+
+.a-enter-vr.embedded {
+  right: 5px;
+  bottom: 5px;
 }
 
 .a-enter-vr-button,
@@ -255,19 +266,4 @@ a-scene audio {
   height: 50px;
   text-indent: -9999px;
   width: 50px;
-}
-
-.a-loader-title {
-  background-color: rgba(0, 0, 0, 0.6);
-  font-family: sans-serif, monospace;
-  text-align: center;
-  font-size: 20px;
-  height: 50px;
-  font-weight: 300;
-  line-height: 50px;
-  position: absolute;
-  right: 0px;
-  left: 0px;
-  top: 0px;
-  color: white;
 }

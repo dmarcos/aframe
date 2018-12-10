@@ -1,21 +1,25 @@
 ## A-Frame Builds
 
-To include these builds, you can download and serve them locally.
+> The `aframe.js` group of builds are deprecated and will be removed. Use the
+> `aframe-master.js` group of builds instead.
 
-To include the latest [master build](#master-builds) from a CDN, include the
-script below from the [jsdelivr CDN](https://www.jsdelivr.com/):
+To include these files, you can either download and serve them locally. Or
+serve directly from `rawgit.com` CDN.
 
 ```html
 <html>
   <head>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@00d0a6502df911702bfeab8d7a23b6b848ba4eb9/dist/aframe-master.min.js"></script>
+    <script src="https://rawgit.com/aframevr/aframe/master/dist/FILENAME"></script>
   </head>
-  <body>
-    <a-scene>
-      <!-- ... -->
-    </a-scene>
-  </body>
+  <!-- ... -->
 </html>
+```
+
+If serving from `rawgit.com`, we recommend locking the file to a specific hash
+rather than tracking the master branch to prevent regressions:
+
+```html
+<script src="https://rawgit.com/aframevr/aframe/HASH/dist/FILENAME"></script>
 ```
 
 ### Release Builds
@@ -34,11 +38,7 @@ These master builds are unstable **bleeding-edge unstable builds** that contain
 newer fixes or features from the **master branch** on GitHub, but may contain
 regressions or breaking changes.
 
-If you're pointing to these builds via the [rawgit CDN](https://rawgit.com/),
-we recommend locking it down to a commit hash rather than pointing directly at
-master such that your scene does not break unexpectedly.
-
-- [`aframe-master.min.js`](aframe-master.min.js) - Minified production build.
-- [`aframe-master.min.js.map`](aframe-master.min.js.map) - Source maps for minified production build.
-- [`aframe-master.js`](aframe-master.js) - Unminified build, for development or debugging.
-- [`aframe-master.js.map`](aframe-master.js.map) - Source maps for unminified build.
+- [`aframe-master.min.js`][aframe-master.min.js] - Minified production build.
+- [`aframe-master.min.js.map`][aframe-master.min.js.map] - Source maps for minified production build.
+- [`aframe-master.js`][aframe-master.js] - Unminified build, for development or debugging.
+- [`aframe-master.js.map`][aframe-master.js.map] - Source maps for unminified build.

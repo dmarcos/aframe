@@ -3,19 +3,16 @@ title: wasd-controls
 type: components
 layout: docs
 parent_section: components
-source_code: src/components/wasd-controls.js
 ---
 
 [components-camera]: ./camera.md
 
-The wasd-controls component controls an entity with the WASD or arrow keyboard
-keys. The wasd-controls component is commonly attached to an entity with the [camera
-component][components-camera].
+The wasd-controls component defines the behavior of an entity to be controlled by the WASD keyboard keys. It is usually used alongside the [camera component][components-camera].
 
 ## Example
 
 ```html
-<a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
+<a-entity camera look-controls wasd-controls></a-entity>
 ```
 
 ## Properties

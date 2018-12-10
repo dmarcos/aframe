@@ -3,10 +3,9 @@ title: <a-ring>
 type: primitives
 layout: docs
 parent_section: primitives
-source_code: src/extras/primitives/primitives/meshPrimitives.js
 ---
 
-The ring primitive creates a ring or disc shape.
+The ring primitive creates a ring or disc shape. It is an entity that prescribes the [geometry](../components/geometry.md) with its geometric primitive set to `ring`.
 
 ## Example
 

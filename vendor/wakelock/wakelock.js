@@ -47,9 +47,9 @@ function iOSWakeLock() {
   this.request = function() {
     if (!timer) {
       timer = setInterval(function() {
-        window.location.href = '/';
+        window.location = window.location;
         setTimeout(window.stop, 0);
-      }, 15000);
+      }, 30000);
     }
   }
 

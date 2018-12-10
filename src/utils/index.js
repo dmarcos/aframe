@@ -1,111 +1,32 @@
-/* global location */
-
+/* global CustomEvent, location */
 /* Centralized place to reference utilities since utils is exposed to the user. */
-var debug = require('./debug');
-var deepAssign = require('deep-assign');
-var device = require('./device');
-var objectAssign = require('object-assign');
-var objectPool = require('./object-pool');
 
-var warn = debug('utils:warn');
+var deepAssign = require('deep-assign');
+var objectAssign = require('object-assign');
 
 module.exports.bind = require('./bind');
 module.exports.coordinates = require('./coordinates');
-module.exports.debug = debug;
-module.exports.device = device;
+module.exports.debug = require('./debug');
+module.exports.device = require('./device');
 module.exports.entity = require('./entity');
 module.exports.forceCanvasResizeSafariMobile = require('./forceCanvasResizeSafariMobile');
 module.exports.material = require('./material');
-module.exports.objectPool = objectPool;
-module.exports.split = require('./split').split;
 module.exports.styleParser = require('./styleParser');
-module.exports.trackedControls = require('./tracked-controls');
-
-module.exports.checkHeadsetConnected = function () {
-  warn('`utils.checkHeadsetConnected` has moved to `utils.device.checkHeadsetConnected`');
-  return device.checkHeadsetConnected(arguments);
-};
-module.exports.isGearVR = function () {
-  warn('`utils.isGearVR` has moved to `utils.device.isGearVR`');
-  return device.isGearVR(arguments);
-};
-module.exports.isIOS = function () {
-  warn('`utils.isIOS` has moved to `utils.device.isIOS`');
-  return device.isIOS(arguments);
-};
-module.exports.isMobile = function () {
-  warn('`utils.isMobile has moved to `utils.device.isMobile`');
-  return device.isMobile(arguments);
-};
 
 /**
- * Returns throttle function that gets called at most once every interval.
+ * Fires a custom DOM event.
  *
- * @param {function} functionToThrottle
- * @param {number} minimumInterval - Minimal interval between calls (milliseconds).
- * @param {object} optionalContext - If given, bind function to throttle to this context.
- * @returns {function} Throttled function.
+ * @param {Element} el Element on which to fire the event.
+ * @param {String} name Name of the event.
+ * @param {Object=} [data={bubbles: true, {detail: <el>}}]
+ *   Data to pass as `customEventInit` to the event.
  */
-module.exports.throttle = function (functionToThrottle, minimumInterval, optionalContext) {
-  var lastTime;
-  if (optionalContext) {
-    functionToThrottle = module.exports.bind(functionToThrottle, optionalContext);
-  }
-  return function () {
-    var time = Date.now();
-    var sinceLastTime = typeof lastTime === 'undefined' ? minimumInterval : time - lastTime;
-    if (typeof lastTime === 'undefined' || (sinceLastTime >= minimumInterval)) {
-      lastTime = time;
-      functionToThrottle.apply(null, arguments);
-    }
-  };
-};
-
-/**
- * Returns throttle function that gets called at most once every interval.
- * Uses the time/timeDelta timestamps provided by the global render loop for better perf.
- *
- * @param {function} functionToThrottle
- * @param {number} minimumInterval - Minimal interval between calls (milliseconds).
- * @param {object} optionalContext - If given, bind function to throttle to this context.
- * @returns {function} Throttled function.
- */
-module.exports.throttleTick = function (functionToThrottle, minimumInterval, optionalContext) {
-  var lastTime;
-  if (optionalContext) {
-    functionToThrottle = module.exports.bind(functionToThrottle, optionalContext);
-  }
-  return function (time, delta) {
-    var sinceLastTime = typeof lastTime === 'undefined' ? delta : time - lastTime;
-    if (typeof lastTime === 'undefined' || (sinceLastTime >= minimumInterval)) {
-      lastTime = time;
-      functionToThrottle(time, sinceLastTime);
-    }
-  };
-};
-
-/**
- * Returns debounce function that gets called only once after a set of repeated calls.
- *
- * @param {function} functionToDebounce
- * @param {number} wait - Time to wait for repeated function calls (milliseconds).
- * @param {boolean} immediate - Calls the function immediately regardless of if it should be waiting.
- * @returns {function} Debounced function.
- */
-module.exports.debounce = function (func, wait, immediate) {
-  var timeout;
-  return function () {
-    var context = this;
-    var args = arguments;
-    var later = function () {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    var callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
-  };
+module.exports.fireEvent = function (el, name, data) {
+  data = data || {};
+  data.detail = data.detail || {};
+  data.detail.target = data.detail.target || el;
+  var evt = new CustomEvent(name, data);
+  el.dispatchEvent(evt);
 };
 
 /**
@@ -117,76 +38,25 @@ module.exports.debounce = function (func, wait, immediate) {
 module.exports.extend = objectAssign;
 module.exports.extendDeep = deepAssign;
 
-module.exports.clone = function (obj) {
-  return JSON.parse(JSON.stringify(obj));
-};
-
 /**
- * Checks if two values are equal.
- * Includes objects and arrays and nested objects and arrays.
- * Try to keep this function performant as it will be called often to see if a component
- * should be updated.
+ * Checks if two objects have the same attributes and values, including nested objects.
  *
  * @param {object} a - First object.
  * @param {object} b - Second object.
  * @returns {boolean} Whether two objects are deeply equal.
  */
-var deepEqual = (function () {
-  var arrayPool = objectPool.createPool(function () { return []; });
-
-  return function (a, b) {
-    var key;
-    var keysA;
-    var keysB;
-    var i;
-    var valA;
-    var valB;
-
-    // If not objects or arrays, compare as values.
-    if (a === undefined || b === undefined || a === null || b === null ||
-        !(a && b && (a.constructor === Object && b.constructor === Object) ||
-                    (a.constructor === Array && b.constructor === Array))) {
-      return a === b;
-    }
-
-    // Different number of keys, not equal.
-    keysA = arrayPool.use();
-    keysB = arrayPool.use();
-    keysA.length = 0;
-    keysB.length = 0;
-    for (key in a) { keysA.push(key); }
-    for (key in b) { keysB.push(key); }
-    if (keysA.length !== keysB.length) {
-      arrayPool.recycle(keysA);
-      arrayPool.recycle(keysB);
-      return false;
-    }
-
-    // Return `false` at the first sign of inequality.
-    for (i = 0; i < keysA.length; ++i) {
-      valA = a[keysA[i]];
-      valB = b[keysA[i]];
-      // Check nested array and object.
-      if ((typeof valA === 'object' || typeof valB === 'object') ||
-          (Array.isArray(valA) && Array.isArray(valB))) {
-        if (valA === valB) { continue; }
-        if (!deepEqual(valA, valB)) {
-          arrayPool.recycle(keysA);
-          arrayPool.recycle(keysB);
-          return false;
-        }
-      } else if (valA !== valB) {
-        arrayPool.recycle(keysA);
-        arrayPool.recycle(keysB);
-        return false;
-      }
-    }
-
-    arrayPool.recycle(keysA);
-    arrayPool.recycle(keysB);
-    return true;
-  };
-})();
+function deepEqual (a, b) {
+  var keysA = Object.keys(a);
+  var keysB = Object.keys(b);
+  var i;
+  if (keysA.length !== keysB.length) { return false; }
+  // If there are no keys, compare the objects.
+  if (keysA.length === 0) { return a === b; }
+  for (i = 0; i < keysA.length; ++i) {
+    if (a[keysA[i]] !== b[keysA[i]]) { return false; }
+  }
+  return true;
+}
 module.exports.deepEqual = deepEqual;
 
 /**
@@ -198,47 +68,26 @@ module.exports.deepEqual = deepEqual;
  *   Difference object where set of keys note which values were not equal, and values are
  *   `b`'s values.
  */
-module.exports.diff = (function () {
-  var keys = [];
-
-  return function (a, b, targetObject) {
-    var aVal;
-    var bVal;
-    var bKey;
-    var diff;
-    var key;
-    var i;
-    var isComparingObjects;
-
-    diff = targetObject || {};
-
-    // Collect A keys.
-    keys.length = 0;
-    for (key in a) { keys.push(key); }
-
-    if (!b) { return diff; }
-
-    // Collect B keys.
-    for (bKey in b) {
-      if (keys.indexOf(bKey) === -1) {
-        keys.push(bKey);
-      }
+module.exports.diff = function (a, b) {
+  var diff = {};
+  var keys = Object.keys(a);
+  Object.keys(b).forEach(function collectKeys (bKey) {
+    if (keys.indexOf(bKey) === -1) {
+      keys.push(bKey);
     }
-
-    for (i = 0; i < keys.length; i++) {
-      key = keys[i];
-      aVal = a[key];
-      bVal = b[key];
-      isComparingObjects = aVal && bVal &&
-                          aVal.constructor === Object && bVal.constructor === Object;
-      if ((isComparingObjects && !deepEqual(aVal, bVal)) ||
-          (!isComparingObjects && aVal !== bVal)) {
-        diff[key] = bVal;
-      }
+  });
+  keys.forEach(function doDiff (key) {
+    var aVal = a[key];
+    var bVal = b[key];
+    var isComparingObjects = aVal && bVal &&
+                             aVal.constructor === Object && bVal.constructor === Object;
+    if ((isComparingObjects && !deepEqual(aVal, bVal)) ||
+        (!isComparingObjects && aVal !== bVal)) {
+      diff[key] = bVal;
     }
-    return diff;
-  };
-})();
+  });
+  return diff;
+};
 
 /**
  * Returns whether we should capture this keyboard event for keyboard shortcuts.
@@ -246,7 +95,9 @@ module.exports.diff = (function () {
  * @returns {Boolean} Whether the key event should be captured.
  */
 module.exports.shouldCaptureKeyEvent = function (event) {
-  if (event.metaKey) { return false; }
+  if (event.shiftKey || event.metaKey || event.altKey || event.ctrlKey) {
+    return false;
+  }
   return document.activeElement === document.body;
 };
 
@@ -291,7 +142,6 @@ module.exports.getElData = function (el, defaults) {
  * @return {String}      Value
  */
 module.exports.getUrlParameter = function (name) {
-  // eslint-disable-next-line no-useless-escape
   name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
   var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
   var results = regex.exec(location.search);

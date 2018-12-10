@@ -16,10 +16,5 @@ module.exports.Component = registerComponent('scale', {
     var y = data.y === 0 ? zeroScale : data.y;
     var z = data.z === 0 ? zeroScale : data.z;
     object3D.scale.set(x, y, z);
-  },
-
-  remove: function () {
-    // Pretty much for mixins.
-    this.el.object3D.scale.set(1, 1, 1);
   }
 });

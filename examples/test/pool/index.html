@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Pool Test</title>
     <meta name="description" content="Pool - A-Frame">
-    <script src="../../../dist/aframe-master.js"></script>
+    <script src="../../../dist/aframe.js"></script>
     <script src="./components/laser.js"></script>
     <script src="./components/spaceship.js"></script>
     <style>
@@ -23,7 +23,7 @@
   </head>
   <body>
     <div class="message"><p>Left and right arrows to move and space bar to shoot</p><p>Used Pool Entities</p></div>
-    <a-scene update-pool-message="messageEl: .message" stats pool="mixin: laser; size: 10">
+    <a-scene update-pool-message=".message" stats pool="mixin: laser; size: 10">
       <a-assets>
         <a-mixin id="laser" laser></a-mixin>
       </a-assets>
@@ -39,14 +39,12 @@
   <script>
     var message = '<p>Left and right arrows to move and space bar to shoot</p><p>Used Pool Entities ';
     AFRAME.registerComponent('update-pool-message', {
-      schema: {
-          messageEl: {type: 'selector'}
-          },
+      schema: {type: 'selector'},
       tick: function () {
         var poolComponent = this.el.components.pool;
         var poolSize = poolComponent.availableEls.length + poolComponent.usedEls.length;
         var usedPoolEntities = this.el.components.pool.usedEls.length;
-        this.data.messageEl.innerHTML = message + usedPoolEntities + '/' + poolSize + '</p>';
+        this.data.innerHTML = message + usedPoolEntities + '/' + poolSize + '</p>';
       }
     });
   </script>

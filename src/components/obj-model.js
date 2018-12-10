@@ -5,6 +5,8 @@ var THREE = require('../lib/three');
 var warn = debug('components:obj-model:warn');
 
 module.exports.Component = registerComponent('obj-model', {
+  dependencies: ['material'],
+
   schema: {
     mtl: {type: 'model'},
     obj: {type: 'model'}
@@ -21,16 +23,12 @@ module.exports.Component = registerComponent('obj-model', {
   update: function () {
     var data = this.data;
     if (!data.obj) { return; }
-    this.resetMesh();
+    this.remove();
     this.loadObj(data.obj, data.mtl);
   },
 
   remove: function () {
     if (!this.model) { return; }
-    this.resetMesh();
-  },
-
-  resetMesh: function () {
     this.el.removeObject3D('mesh');
   },
 
@@ -45,7 +43,7 @@ module.exports.Component = registerComponent('obj-model', {
       if (el.hasAttribute('material')) {
         warn('Material component properties are ignored when a .MTL is provided');
       }
-      mtlLoader.setTexturePath(mtlUrl.substr(0, mtlUrl.lastIndexOf('/') + 1));
+      mtlLoader.setBaseUrl(mtlUrl.substr(0, mtlUrl.lastIndexOf('/') + 1));
       mtlLoader.load(mtlUrl, function (materials) {
         materials.preload();
         objLoader.setMaterials(materials);
@@ -59,7 +57,7 @@ module.exports.Component = registerComponent('obj-model', {
     }
 
     // .OBJ only.
-    objLoader.load(objUrl, function loadObjOnly (objModel) {
+    objLoader.load(objUrl, function (objModel) {
       // Apply material.
       var material = el.components.material;
       if (material) {

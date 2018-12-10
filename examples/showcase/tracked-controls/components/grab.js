@@ -1,4 +1,4 @@
-/* global AFRAME, THREE */
+/* global AFRAME */
 
 /**
 * Handles events coming from the hand-controls.
@@ -12,37 +12,40 @@ AFRAME.registerComponent('grab', {
     this.onHit = this.onHit.bind(this);
     this.onGripOpen = this.onGripOpen.bind(this);
     this.onGripClose = this.onGripClose.bind(this);
-    this.currentPosition = new THREE.Vector3();
   },
 
   play: function () {
     var el = this.el;
     el.addEventListener('hit', this.onHit);
-    el.addEventListener('buttondown', this.onGripClose);
-    el.addEventListener('buttonup', this.onGripOpen);
+    el.addEventListener('gripclose', this.onGripClose);
+    el.addEventListener('gripopen', this.onGripOpen);
+    el.addEventListener('thumbup', this.onGripClose);
+    el.addEventListener('thumbdown', this.onGripOpen);
+    el.addEventListener('pointup', this.onGripClose);
+    el.addEventListener('pointdown', this.onGripOpen);
   },
 
   pause: function () {
     var el = this.el;
     el.removeEventListener('hit', this.onHit);
-    el.addEventListener('buttondown', this.onGripClose);
-    el.addEventListener('buttonup', this.onGripOpen);
+    el.removeEventListener('gripclose', this.onGripClose);
+    el.removeEventListener('gripopen', this.onGripOpen);
+    el.removeEventListener('thumbup', this.onGripClose);
+    el.removeEventListener('thumbdown', this.onGripOpen);
+    el.removeEventListener('pointup', this.onGripClose);
+    el.removeEventListener('pointdown', this.onGripOpen);
   },
 
   onGripClose: function (evt) {
-    if (this.grabbing) { return; }
     this.grabbing = true;
-    this.pressedButtonId = evt.detail.id;
     delete this.previousPosition;
   },
 
   onGripOpen: function (evt) {
     var hitEl = this.hitEl;
-    if (this.pressedButtonId !== evt.detail.id) { return; }
     this.grabbing = false;
     if (!hitEl) { return; }
     hitEl.removeState(this.GRABBED_STATE);
-    hitEl.emit('grabend');
     this.hitEl = undefined;
   },
 
@@ -61,7 +64,7 @@ AFRAME.registerComponent('grab', {
     var position;
     if (!hitEl) { return; }
     this.updateDelta();
-    position = hitEl.getAttribute('position');
+    position = hitEl.getComputedAttribute('position');
     hitEl.setAttribute('position', {
       x: position.x + this.deltaPosition.x,
       y: position.y + this.deltaPosition.y,
@@ -70,20 +73,14 @@ AFRAME.registerComponent('grab', {
   },
 
   updateDelta: function () {
-    var currentPosition = this.currentPosition;
-    this.el.object3D.updateMatrixWorld();
-    currentPosition.setFromMatrixPosition(this.el.object3D.matrixWorld);
-    if (!this.previousPosition) {
-      this.previousPosition = new THREE.Vector3();
-      this.previousPosition.copy(currentPosition);
-    }
-    var previousPosition = this.previousPosition;
+    var currentPosition = this.el.getComputedAttribute('position');
+    var previousPosition = this.previousPosition || currentPosition;
     var deltaPosition = {
       x: currentPosition.x - previousPosition.x,
       y: currentPosition.y - previousPosition.y,
       z: currentPosition.z - previousPosition.z
     };
-    this.previousPosition.copy(currentPosition);
+    this.previousPosition = currentPosition;
     this.deltaPosition = deltaPosition;
   }
 });

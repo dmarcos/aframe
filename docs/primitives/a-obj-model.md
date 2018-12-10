@@ -3,16 +3,19 @@ title: <a-obj-model>
 type: primitives
 layout: docs
 parent_section: primitives
-source_code: src/extras/primitives/primitives/a-obj-model.js
 ---
 
-> We recommend glTF for distributing assets in production over the web. Check
-> out using the [glTF model primitive](a-gltf-model.md). You can
+> glTF is recommended for distributing assets in production over the web. Check
+> out using the [glTF component](https://github.com/xirvr/aframe-gltf). You can
 > either instead export to COLLADA and use [the
 > converter](https://cesiumjs.org/convertmodel.html) or try out the [OBJ
 > converter](https://github.com/AnalyticalGraphicsInc/OBJ2GLTF).
 
-The .OBJ model primitive displays a 3D Wavefront model.
+[objcomponent]: ../components/obj-model.md
+
+The .OBJ model primitive displays a 3D Wavefront model. It is an entity that
+maps the `src` and `mtl` attributes to the [obj-model
+component's][objcomponent] `obj` and `mtl` properties respectively.
 
 ## Example
 
@@ -40,4 +43,5 @@ The .OBJ model primitive displays a 3D Wavefront model.
 
 ## Troubleshooting
 
-See [Introduction → 3D Models → Troubleshooting](../introduction/models.md#troubleshooting).
+If you don't see your model, try scaling it down. OBJ models generally have
+extremely large scales in comparison to A-Frame's scale.

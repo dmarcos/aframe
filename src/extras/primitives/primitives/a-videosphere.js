@@ -8,13 +8,11 @@ registerPrimitive('a-videosphere', utils.extendDeep({}, getMeshMixin(), {
       primitive: 'sphere',
       radius: 5000,
       segmentsWidth: 64,
-      segmentsHeight: 32
+      segmentsHeight: 20
     },
     material: {
       color: '#FFF',
-      shader: 'flat',
-      side: 'back',
-      npot: true
+      shader: 'flat'
     },
     scale: '-1 1 1'
   },

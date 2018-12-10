@@ -3,35 +3,26 @@ title: <a-cylinder>
 type: primitives
 layout: docs
 parent_section: primitives
-source_code: src/extras/primitives/primitives/meshPrimitives.js
 ---
 
-The cylinder primitive is used to create tubes and curved surfaces.
+The cylinder primitive is an entity that prescribes the [geometry](../components/geometry.md) with its geometric primitive set to `cylinder`. It can be used to create tubes and curved surfaces.
 
 ## Examples
 
-The cylinder primitive is versatile and can be used to create different kinds of shapes:
+The cylinder primitive is versatile and can actually be used to create various shapes:
 
 ```html
 <!-- Basic cylinder. -->
 <a-cylinder color="crimson" height="3" radius="1.5"></a-cylinder>
 
 <!-- Hexagon. -->
-<a-cylinder color="cyan" segments-radial="6"></a-cylinder>
+<a-cylinder color="cyan" segments-radial="8"></a-cylinder>
 
 <!-- Pac-man. -->
 <a-cylinder color="yellow" theta-start="50" theta-length="280" side="double"></a-cylinder>
 
 <!-- Green pipe. -->
 <a-cylinder color="green" open-ended="true"></a-cylinder>
-```
-
-In degrees, `thetaStart` defines where to start the arc and `thetaLength` defines where the arc ends. 
-
-Also, we can create a tube by making the cylinder open-ended, which removes the top and bottom surfaces of the cylinder such that the inside is visible. Then, we need a double-sided material to render properly:
-
-```html
-<a-cylinder color="cyan" material="side: double" open-ended="true" rotation="90 0 0"></a-cylinder>
 ```
 
 ## Attributes
@@ -50,7 +41,7 @@ Also, we can create a tube by making the cylinder open-ended, which removes the 
 | displacement-texture-repeat      | material.displacementTextureRepeat     | 1 1           |
 | env-map                          | material.envMap                        | None          |
 | fog                              | material.fog                           | true          |
-| height                           | geometry.height                        | 1             |
+| height                           | material.height                        | 256           |
 | metalness                        | material.metalness                     | 0             |
 | normal-map                       | material.normalMap                     | None          |
 | normal-scale                     | material.normalScale                   | 1 1           |

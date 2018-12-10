@@ -3,17 +3,18 @@ title: <a-video>
 type: primitives
 layout: docs
 parent_section: primitives
-source_code: src/extras/primitives/primitives/a-video.js
 ---
 
-The video primitive plays a video as a texture on a flat plane.
+The video primitive displays a video on a flat plane as a texture. It is an
+entity that prescribes the [geometry](../components/geometry.md) with its
+geometric primitive set to `plane`.
 
 ## Example
 
 ```html
 <a-scene>
   <a-assets>
-    <video id="penguin-sledding" autoplay loop="true" src="penguin-sledding.mp4"></video>
+    <video id="penguin-sledding" autoplay loop="true" src="penguin-sledding.mp4">
   </a-assets>
 
   <!-- Using the asset management system. -->
@@ -46,20 +47,13 @@ The video primitive plays a video as a texture on a flat plane.
 
 iOS has a lot of restrictions on playing videos in the browser. To play an inline video texture, we must:
 
-- Set the `<meta name="apple-mobile-web-app-capable" content="yes">` meta tag. A-Frame will will inject this if missing.
-- Set the `webkit-playsinline` and `playsinline` attribute to the video element. A-Frame will add this to all videos if missing).
+- Set the `<meta name="apple-mobile-web-app-capable" content="yes">` meta tag (will be injected if missing).
+- Set the `webkit-playsinline` attribute to the video element (is automatically added to all videos).
+- Pin the webpage to the iOS homescreen.
 
-Since iOS 11, iOS has required user interaction to trigger video playback. This is also true on a number of Android device and
-browser combinations.
+Inline video support on iOS 10 may change this. On certain Android devices or
+browsers, we must:
 
-## Fine-Tuning
+[android-touch-bug]: https://bugs.chromium.org/p/chromium/issues/detail?id=178297
 
-Ensuring that the video is not distorted by stretching requires us to appropriately set the `width` and `height` preserving the original aspect ratio of the video. This properties are set in meters, don't confuse with pixels.
-
-For example, a 2:1 video:
-
-```html
-<a-video src="#myvideo" width="3" height="1.5"></a-video>
-```
-
-
+- Require user interaction to trigger the video (such as a click or tap event). See [Chromium Bug 178297][android-touch-bug].

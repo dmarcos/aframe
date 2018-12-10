@@ -6,7 +6,6 @@ var isSingleProperty = Schema.isSingleProperty;
 var parseProperties = Schema.parseProperties;
 var parseProperty = Schema.parseProperty;
 var processSchema = Schema.process;
-var stringifyProperty = Schema.stringifyProperty;
 
 suite('schema', function () {
   suite('isSingleProperty', function () {
@@ -87,13 +86,11 @@ suite('schema', function () {
       var schema = processSchema({
         position: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
         scale: {type: 'vec3', default: '0 0 0'},
-        src: {type: 'asset'},
         visible: {type: 'boolean'},
         width: {type: 'int', default: 2}
       });
       var parsed = parseProperties({
         position: '1 2 3',
-        src: 'url(test.png)',
         visible: 'false',
         width: '7'
       }, schema);
@@ -101,7 +98,6 @@ suite('schema', function () {
       assert.shallowDeepEqual(parsed, {
         position: {x: 1, y: 2, z: 3},
         scale: {x: 0, y: 0, z: 0},
-        src: 'test.png',
         visible: false,
         width: 7
       });
@@ -118,16 +114,6 @@ suite('schema', function () {
         position: {x: 0, y: 0, z: 0},
         scale: {x: 0, y: 0, z: 0}
       });
-    });
-
-    test('does not share the reference to an array without default values specification', function () {
-      var schema = processSchema({
-        foo: {type: 'array'},
-        bar: {type: 'array'}
-      });
-      var parsed = parseProperties({}, schema);
-
-      assert.ok(parsed.foo !== parsed.bar);
     });
   });
 
@@ -196,23 +182,6 @@ suite('schema', function () {
         assert.equal(typeof propDefinition.parse, 'function');
         assert.equal(typeof propDefinition.stringify, 'function');
       });
-    });
-  });
-
-  suite('stringifyProperty', function () {
-    test('returns input if input is not an object', function () {
-      var parsedValue = stringifyProperty(5, {stringify: JSON.stringify});
-      assert.equal(parsedValue, 5);
-    });
-
-    test('returns parsed input if input is an object', function () {
-      var parsedValue = stringifyProperty({x: 5}, {stringify: JSON.stringify});
-      assert.equal(parsedValue, '{"x":5}');
-    });
-
-    test('returns parsed input if input is null', function () {
-      var parsedValue = stringifyProperty(null, {stringify: JSON.stringify});
-      assert.equal(parsedValue, 'null');
     });
   });
 });

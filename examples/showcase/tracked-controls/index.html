@@ -4,31 +4,29 @@
     <meta charset="utf-8">
     <title>Tracked Controls</title>
     <meta name="description" content="Tracked Controls – A-Frame">
-    <script src="../../../dist/aframe-master.js"></script>
+    <script src="../../../dist/aframe.js"></script>
     <script src="components/aabb-collider.js"></script>
     <script src="components/grab.js"></script>
     <script src="components/ground.js"></script>
     <script src="shaders/skyGradient.js"></script>
-    <script src="https://unpkg.com/aframe-event-set-component@4.0.1/dist/aframe-event-set-component.min.js"></script>
   </head>
   <body>
-    <a-scene cursor="rayOrigin: mouse" fog="color: #bc483e; near: 0; far: 65;">
+    <a-scene fog="color: #bc483e; near: 0; far: 65;">
       <a-assets>
         <a-mixin id="cube"
-                 event-set__grab="material.color: #FFEF4F"
-                 event-set__grabend="material.color: #F2E646"
-                 event-set__hit="material.color: #F2E646"
-                 event-set__hitend="material.color: #EF2D5E"
-                 event-set__mousedown="material.color: #FFEF4F"
-                 event-set__mouseenter="material.color: #F2E646"
-                 event-set__mouseleave="material.color: #EF2D5E"
-                 event-set__mouseup="material.color: #F2E646"
                  geometry="primitive: box; height: 0.30; width: 0.30; depth: 0.30"
                  material="color: #EF2D5E;"></a-mixin>
+        <a-mixin id="cube-collided"
+                 material="color: #F2E646;"></a-mixin>
+        <a-mixin id="cube-grabbed"
+                 material="color: #F2E646;"></a-mixin>
       </a-assets>
+      <!-- Hands -->
+      <a-entity hand-controls="left" aabb-collider="objects: .cube;" grab></a-entity>
+      <a-entity hand-controls="right" aabb-collider="objects: .cube;" grab></a-entity>
 
       <!-- A-Frame cubes -->
-      <a-entity position="0 0 -0.5">
+      <a-entity position="0 0 -1">
         <a-entity class="cube" mixin="cube" position="0.30 1.65 0"></a-entity>
         <a-entity class="cube" mixin="cube" position="0 1.95 0"></a-entity>
         <a-entity class="cube" mixin="cube" position="-0.30 1.65 0"></a-entity>
@@ -58,10 +56,6 @@
          <a-entity light="type: point; color: #f4f4f4; intensity: 0.6; distance: 0" position="-8 10 -18"></a-entity>
          <a-entity light="type: ambient; color: #f4f4f4; intensity: 0.4;" position="-8 10 -18"></a-entity>
       </a-entity>
-      <!-- Hands -->
-      <a-entity hand-controls="left" aabb-collider="objects: .cube;" grab></a-entity>
-      <a-entity hand-controls="right" aabb-collider="objects: .cube;" grab></a-entity>
-      <a-entity position="0 1.6 2" camera look-controls wasd-controls></a-entity>
     </a-scene>
   </body>
 </html>

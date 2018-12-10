@@ -18,20 +18,13 @@ var shaderNames = shader.shaderNames;
  */
 module.exports.Component = registerComponent('material', {
   schema: {
-    alphaTest: {default: 0.0, min: 0.0, max: 1.0},
     depthTest: {default: true},
-    depthWrite: {default: true},
     flatShading: {default: false},
-    npot: {default: false},
-    offset: {type: 'vec2', default: {x: 0, y: 0}},
     opacity: {default: 1.0, min: 0.0, max: 1.0},
-    repeat: {type: 'vec2', default: {x: 1, y: 1}},
-    shader: {default: 'standard', oneOf: shaderNames, schemaChange: true},
+    shader: {default: 'standard', oneOf: shaderNames},
     side: {default: 'front', oneOf: ['front', 'back', 'double']},
     transparent: {default: false},
-    vertexColors: {type: 'string', default: 'none', oneOf: ['face', 'vertex']},
-    visible: {default: true},
-    blending: {default: 'normal', oneOf: ['none', 'normal', 'additive', 'subtractive', 'multiply']}
+    visible: {default: true}
   },
 
   init: function () {
@@ -49,20 +42,14 @@ module.exports.Component = registerComponent('material', {
       this.updateShader(data.shader);
     }
     this.shader.update(this.data);
-    this.updateMaterial(oldData);
+    this.updateMaterial();
   },
 
   updateSchema: function (data) {
-    var currentShader;
-    var newShader;
-    var schema;
-    var shader;
-
-    newShader = data && data.shader;
-    currentShader = this.oldData && this.oldData.shader;
-    shader = newShader || currentShader;
-    schema = shaders[shader] && shaders[shader].schema;
-
+    var newShader = data.shader;
+    var currentShader = this.data && this.data.shader;
+    var shader = newShader || currentShader;
+    var schema = shaders[shader] && shaders[shader].schema;
     if (!schema) { error('Unknown shader schema ' + shader); }
     if (currentShader && newShader === currentShader) { return; }
     this.extendSchema(schema);
@@ -70,35 +57,26 @@ module.exports.Component = registerComponent('material', {
   },
 
   updateBehavior: function () {
-    var key;
-    var sceneEl = this.el.sceneEl;
+    var scene = this.el.sceneEl;
     var schema = this.schema;
     var self = this;
-    var tickProperties;
-
-    function tickTime (time, delta) {
-      var key;
-      for (key in tickProperties) {
-        tickProperties[key] = time;
-      }
+    var tickProperties = {};
+    var tick = function (time, delta) {
+      var keys = Object.keys(tickProperties);
+      keys.forEach(update);
+      function update (key) { tickProperties[key] = time; }
       self.shader.update(tickProperties);
-    }
-
-    this.tick = undefined;
-
-    tickProperties = {};
-    for (key in schema) {
+    };
+    var keys = Object.keys(schema);
+    keys.forEach(function (key) {
       if (schema[key].type === 'time') {
-        this.tick = tickTime;
+        self.tick = tick;
         tickProperties[key] = true;
+        scene.addBehavior(self);
       }
-    }
-
-    if (!sceneEl) { return; }
-    if (this.tick) {
-      sceneEl.addBehavior(this);
-    } else {
-      sceneEl.removeBehavior(this);
+    });
+    if (Object.keys(tickProperties).length === 0) {
+      scene.removeBehavior(this);
     }
   },
 
@@ -117,35 +95,15 @@ module.exports.Component = registerComponent('material', {
     this.updateSchema(data);
   },
 
-  /**
-   * Set and update base material properties.
-   * Set `needsUpdate` when needed.
-   */
-  updateMaterial: function (oldData) {
+  updateMaterial: function () {
     var data = this.data;
     var material = this.material;
-    var oldDataHasKeys;
-
-    // Base material properties.
-    material.alphaTest = data.alphaTest;
-    material.depthTest = data.depthTest !== false;
-    material.depthWrite = data.depthWrite !== false;
-    material.opacity = data.opacity;
-    material.flatShading = data.flatShading;
     material.side = parseSide(data.side);
+    material.opacity = data.opacity;
     material.transparent = data.transparent !== false || data.opacity < 1.0;
-    material.vertexColors = parseVertexColors(data.vertexColors);
+    material.depthTest = data.depthTest !== false;
+    material.shading = data.flatShading ? THREE.FlatShading : THREE.SmoothShading;
     material.visible = data.visible;
-    material.blending = parseBlending(data.blending);
-
-    // Check if material needs update.
-    for (oldDataHasKeys in oldData) { break; }
-    if (oldDataHasKeys &&
-        (oldData.alphaTest !== data.alphaTest ||
-         oldData.side !== data.side ||
-         oldData.vertexColors !== data.vertexColors)) {
-      material.needsUpdate = true;
-    }
   },
 
   /**
@@ -169,31 +127,16 @@ module.exports.Component = registerComponent('material', {
    * @returns {object} Material.
    */
   setMaterial: function (material) {
-    var el = this.el;
-    var mesh;
+    var mesh = this.el.getOrCreateObject3D('mesh', THREE.Mesh);
     var system = this.system;
-
     if (this.material) { disposeMaterial(this.material, system); }
-
-    this.material = material;
+    this.material = mesh.material = material;
     system.registerMaterial(material);
-
-    // Set on mesh. If mesh does not exist, wait for it.
-    mesh = el.getObject3D('mesh');
-    if (mesh) {
-      mesh.material = material;
-    } else {
-      el.addEventListener('object3dset', function waitForMesh (evt) {
-        if (evt.detail.type !== 'mesh' || evt.target !== el) { return; }
-        el.getObject3D('mesh').material = material;
-        el.removeEventListener('object3dset', waitForMesh);
-      });
-    }
   }
 });
 
 /**
- * Return a three.js constant determining which material face sides to render
+ * Returns a three.js constant determining which material face sides to render
  * based on the side parameter (passed as a component property).
  *
  * @param {string} [side=front] - `front`, `back`, or `double`.
@@ -210,50 +153,6 @@ function parseSide (side) {
     default: {
       // Including case `front`.
       return THREE.FrontSide;
-    }
-  }
-}
-
-/**
- * Return a three.js constant determining vertex coloring.
- */
-function parseVertexColors (coloring) {
-  switch (coloring) {
-    case 'face': {
-      return THREE.FaceColors;
-    }
-    case 'vertex': {
-      return THREE.VertexColors;
-    }
-    default: {
-      return THREE.NoColors;
-    }
-  }
-}
-
-/**
- * Return a three.js constant determining blending
- *
- * @param {string} [blending=normal]
- * - `none`, additive`, `subtractive`,`multiply` or `normal`.
- * @returns {number}
- */
-function parseBlending (blending) {
-  switch (blending) {
-    case 'none': {
-      return THREE.NoBlending;
-    }
-    case 'additive': {
-      return THREE.AdditiveBlending;
-    }
-    case 'subtractive': {
-      return THREE.SubtractiveBlending;
-    }
-    case 'multiply': {
-      return THREE.MultiplyBlending;
-    }
-    default: {
-      return THREE.NormalBlending;
     }
   }
 }

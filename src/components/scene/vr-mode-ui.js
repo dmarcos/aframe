@@ -15,8 +15,7 @@ module.exports.Component = registerComponent('vr-mode-ui', {
   dependencies: ['canvas'],
 
   schema: {
-    enabled: {default: true},
-    enterVRButton: {default: ''}
+    enabled: {default: true}
   },
 
   init: function () {
@@ -25,14 +24,15 @@ module.exports.Component = registerComponent('vr-mode-ui', {
 
     if (utils.getUrlParameter('ui') === 'false') { return; }
 
+    this.enterVR = bind(sceneEl.enterVR, sceneEl);
+    this.exitVR = bind(sceneEl.exitVR, sceneEl);
     this.insideLoader = false;
     this.enterVREl = null;
     this.orientationModalEl = null;
-    this.bindMethods();
 
     // Hide/show VR UI when entering/exiting VR mode.
-    sceneEl.addEventListener('enter-vr', this.updateEnterVRInterface);
-    sceneEl.addEventListener('exit-vr', this.updateEnterVRInterface);
+    sceneEl.addEventListener('enter-vr', bind(this.updateEnterVRInterface, this));
+    sceneEl.addEventListener('exit-vr', bind(this.updateEnterVRInterface, this));
 
     window.addEventListener('message', function (event) {
       if (event.data.type === 'loaderReady') {
@@ -42,50 +42,22 @@ module.exports.Component = registerComponent('vr-mode-ui', {
     });
 
     // Modal that tells the user to change orientation if in portrait.
-    window.addEventListener('orientationchange', this.toggleOrientationModalIfNeeded);
-  },
-
-  bindMethods: function () {
-    this.onEnterVRButtonClick = bind(this.onEnterVRButtonClick, this);
-    this.onModalClick = bind(this.onModalClick, this);
-    this.toggleOrientationModalIfNeeded = bind(this.toggleOrientationModalIfNeeded, this);
-    this.updateEnterVRInterface = bind(this.updateEnterVRInterface, this);
-  },
-
-  /**
-   * Exit VR when modal clicked.
-   */
-  onModalClick: function () {
-    this.el.exitVR();
-  },
-
-  /**
-   * Enter VR when modal clicked.
-   */
-  onEnterVRButtonClick: function () {
-    this.el.enterVR();
+    window.addEventListener('orientationchange', bind(this.toggleOrientationModalIfNeeded, this));
   },
 
   update: function () {
-    var data = this.data;
     var sceneEl = this.el;
 
-    if (!data.enabled || this.insideLoader || utils.getUrlParameter('ui') === 'false') {
+    if (!this.data.enabled || this.insideLoader || utils.getUrlParameter('ui') === 'false') {
       return this.remove();
     }
     if (this.enterVREl || this.orientationModalEl) { return; }
 
     // Add UI if enabled and not already present.
-    if (data.enterVRButton) {
-      // Custom button.
-      this.enterVREl = document.querySelector(data.enterVRButton);
-      this.enterVREl.addEventListener('click', this.onEnterVRButtonClick);
-    } else {
-      this.enterVREl = createEnterVRButton(this.onEnterVRButtonClick);
-      sceneEl.appendChild(this.enterVREl);
-    }
+    this.enterVREl = createEnterVRButton(this.enterVR);
+    sceneEl.appendChild(this.enterVREl);
 
-    this.orientationModalEl = createOrientationModal(this.onModalClick);
+    this.orientationModalEl = createOrientationModal(this.exitVR);
     sceneEl.appendChild(this.orientationModalEl);
 
     this.updateEnterVRInterface();
@@ -93,7 +65,7 @@ module.exports.Component = registerComponent('vr-mode-ui', {
 
   remove: function () {
     [this.enterVREl, this.orientationModalEl].forEach(function (uiElement) {
-      if (uiElement && uiElement.parentNode) {
+      if (uiElement) {
         uiElement.parentNode.removeChild(uiElement);
       }
     });
@@ -128,14 +100,13 @@ module.exports.Component = registerComponent('vr-mode-ui', {
 });
 
 /**
- * Create a button that when clicked will enter into stereo-rendering mode for VR.
+ * Creates a button that when clicked will enter into stereo-rendering mode for VR.
  *
  * Structure: <div><button></div>
  *
- * @param {function} onClick - click event handler
  * @returns {Element} Wrapper <div>.
  */
-function createEnterVRButton (onClick) {
+function createEnterVRButton (enterVRHandler) {
   var vrButton;
   var wrapper;
 
@@ -145,27 +116,19 @@ function createEnterVRButton (onClick) {
   wrapper.setAttribute(constants.AFRAME_INJECTED, '');
   vrButton = document.createElement('button');
   vrButton.className = ENTER_VR_BTN_CLASS;
-  vrButton.setAttribute('title',
-    'Enter VR mode with a headset or fullscreen mode on a desktop. ' +
-    'Visit https://webvr.rocks or https://webvr.info for more information.');
   vrButton.setAttribute(constants.AFRAME_INJECTED, '');
 
   // Insert elements.
   wrapper.appendChild(vrButton);
-  vrButton.addEventListener('click', function (evt) {
-    onClick();
-    evt.stopPropagation();
-  });
+  vrButton.addEventListener('click', enterVRHandler);
   return wrapper;
 }
 
 /**
- * Creates a modal dialog to request the user to switch to landscape orientation.
- *
- * @param {function} onClick - click event handler
- * @returns {Element} Wrapper <div>.
+ * Create a modal that tells mobile users to orient the phone to landscape.
+ * Add a close button that if clicked, exits VR and closes the modal.
  */
-function createOrientationModal (onClick) {
+function createOrientationModal (exitVRHandler) {
   var modal = document.createElement('div');
   modal.className = ORIENTATION_MODAL_CLASS;
   modal.classList.add(HIDDEN_CLASS);
@@ -176,7 +139,7 @@ function createOrientationModal (onClick) {
   exit.innerHTML = 'Exit VR';
 
   // Exit VR on close.
-  exit.addEventListener('click', onClick);
+  exit.addEventListener('click', exitVRHandler);
 
   modal.appendChild(exit);
 

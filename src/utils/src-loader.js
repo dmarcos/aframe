@@ -1,21 +1,21 @@
-/* global Image, XMLHttpRequest */
+/* global Image */
 var debug = require('./debug');
 
 var warn = debug('utils:src-loader:warn');
 
 /**
- * Validate a texture, either as a selector or as a URL.
+ * Validates a texture, either as a selector or as a URL.
  * Detects whether `src` is pointing to an image or video and invokes the appropriate
  * callback.
  *
- * `src` will be passed into the callback
+ * The src will be returned on the callback
  *
- * @params {string|Element} src - URL or media element.
+ * @params {string} src - URL.
  * @params {function} isImageCb - callback if texture is an image.
  * @params {function} isVideoCb - callback if texture is a video.
  */
 function validateSrc (src, isImageCb, isVideoCb) {
-  checkIsImage(src, function isAnImageUrl (isImage) {
+  validateImageUrl(src, function isAnImageUrl (isImage) {
     if (isImage) {
       isImageCb(src);
       return;
@@ -56,6 +56,7 @@ function validateCubemapSrc (src, cb) {
   }
   if (urls) {
     for (i = 1; i < 7; i++) {
+      // TODO: cubemap property type.
       validateSrc(parseUrl(urls[i]), isImageCb);
     }
     return;
@@ -83,44 +84,11 @@ function parseUrl (src) {
 }
 
 /**
- * Call back whether `src` is an image.
- *
- * @param {string|Element} src - URL or element that will be tested.
- * @param {function} onResult - Callback with whether `src` is an image.
+ * Validate src is a valid image url
+ * @param  {string} src - url that will be tested
+ * @param  {function} onResult - callback with the test result
  */
-function checkIsImage (src, onResult) {
-  var request;
-
-  if (src.tagName) {
-    onResult(src.tagName === 'IMG');
-    return;
-  }
-  request = new XMLHttpRequest();
-
-  // Try to send HEAD request to check if image first.
-  request.open('HEAD', src);
-  request.addEventListener('load', function (event) {
-    var contentType;
-    if (request.status >= 200 && request.status < 300) {
-      contentType = request.getResponseHeader('Content-Type');
-      if (contentType == null) {
-        checkIsImageFallback(src, onResult);
-      } else {
-        if (contentType.startsWith('image')) {
-          onResult(true);
-        } else {
-          onResult(false);
-        }
-      }
-    } else {
-      checkIsImageFallback(src, onResult);
-    }
-    request.abort();
-  });
-  request.send();
-}
-
-function checkIsImageFallback (src, onResult) {
+function validateImageUrl (src, onResult) {
   var tester = new Image();
   tester.addEventListener('load', onLoad);
   function onLoad () { onResult(true); }

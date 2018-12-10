@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <title>Cubes</title>
     <meta name="description" content="Cubes - A-Frame">
-    <script src="../../../dist/aframe-master.js"></script>
+    <script src="../../../dist/aframe.js"></script>
   </head>
   <body>
-    <a-scene background="color: #ECECEC">
+    <a-scene>
       <a-assets>
         <a-mixin id="box" geometry="depth: 0.1; height: 0.1; width: 0.1"></a-mixin>
         <a-mixin id="frame-edge" geometry="primitive: box; depth: 10; height: 0.1; width: 0.1"
@@ -54,6 +54,7 @@
       <!-- Cube shadow -->
       <a-image id="shadow" position="0 -14 0" src="#shadow" opacity="1" rotation="-90 0 0"
                scale="14 14 14"></a-image>
+      <a-sky color="#ECECEC"></a-sky>
     </a-scene>
   </body>
 </html>

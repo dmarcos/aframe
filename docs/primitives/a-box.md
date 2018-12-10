@@ -1,15 +1,11 @@
 ---
 title: <a-box>
-section_title: Primitives
 type: primitives
 layout: docs
-parent_section: docs
-order: 1
-section_order: 5
-source_code: src/extras/primitives/primitives/meshPrimitives.js
+parent_section: primitives
 ---
 
-The box primitive creates shapes such as boxes, cubes, or walls.
+The box primitive, formerly called `<a-cube>`, creates shapes such as boxes, cubes, or walls. It is an entity that prescribes the [geometry](../components/geometry.md) with its geometric primitive set to `box`.
 
 ## Example
 
@@ -42,7 +38,7 @@ The box primitive creates shapes such as boxes, cubes, or walls.
 | displacement-texture-repeat      | material.displacementTextureRepeat     | 1 1           |
 | env-map                          | material.envMap                        | None          |
 | fog                              | material.fog                           | true          |
-| height                           | geometry.height                        | 1             |
+| height                           | material.height                        | 256           |
 | metalness                        | material.metalness                     | 0             |
 | normal-map                       | material.normalMap                     | None          |
 | normal-scale                     | material.normalScale                   | 1 1           |
@@ -55,6 +51,6 @@ The box primitive creates shapes such as boxes, cubes, or walls.
 | segments-width                   | geometry.segmentsWidth                 | 1             |
 | spherical-env-map                | material.sphericalEnvMap               | None          |
 | src                              | material.src                           | None          |
-| width                            | geometry.width                         | 1             |
+| width                            | material.width                         | 512           |
 | wireframe                        | material.wireframe                     | false         |
 | wireframe-linewidth              | material.wireframeLinewidth            | 2             |

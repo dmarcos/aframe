@@ -3,8 +3,6 @@ title: collada-model
 type: components
 layout: docs
 parent_section: components
-source_code: src/components/collada-model.js
-examples: []
 ---
 
 The collada-model component loads a 3D model using a [COLLADA][wiki-collada] (.DAE) file.
@@ -44,7 +42,7 @@ We can also load a COLLADA model by specifying the path directly within `url()`.
 <a-entity collada-model="url(/path/to/tree.dae)"></a-entity>
 ```
 
-## More Resources
+## Additional Resources
 
 We can find and download models on the web to drop into our scenes:
 

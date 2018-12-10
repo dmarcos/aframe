@@ -3,12 +3,9 @@ title: position
 type: components
 layout: docs
 parent_section: components
-source_code: src/components/position.js
-examples: []
 ---
 
-The position component places entities at certain spots in 3D space. Position
-takes a coordinate value as three space-delimited numbers.
+The position component defines where an entity is placed in the scene's world space. It takes a coordinate value as three space-delimited numbers.
 
 All entities inherently have the position component.
 
@@ -30,57 +27,15 @@ A-Frame uses a right-handed coordinate system where the negative Z axis extends 
 
 ## Relative Positioning
 
-World-space positions of child entities inherit from parent entities. Consider this scene:
+World-space positions of child entities are inherited from parent entities. Consider this scene:
 
 ```html
 <a-entity id="parent" position="1 2 3">
-  <a-entity id="child1"></a-entity>
-  <a-entity id="child2" position="2 3 4"></a-entity>
+  <a-entity id="child-1"></a-entity>
+  <a-entity id="child-2" position="2 3 4"></a-entity>
 </a-entity>
 ```
 
-The world-space position of `#child1` would be `1 2 3` as inherited by the
-entity. In the local parent's space, `#child1`'s position would be `0 0 0`.
+The world-space position of `#child1` would be `1 2 3` as inherited by the entity. In the local parent's space, `#child1`'s position would be seen as `0 0 0`.
 
-The world-space position of `#child2` would be `3 5 7`, by combining the
-position with the parent entity. In the parent's local space, `#child2`'s
-position would be `2 3 4`.
-
-## Updating Position
-
-[object3d]: https://threejs.org/docs/#api/core/Object3D
-[update]: ../introduction/javascript-events-dom-apis.md#updating-a-component-with-setattribute
-[vector]: https://threejs.org/docs/index.html#api/math/Vector3
-
-For performance and ergonomics, we recommend updating position directly via the
-three.js [Object3D][object3d] `.position` [Vector3][vector] versus [via
-`.setAttribute`][update].
-
-This method is easier because we have access to all the [Vector3
-utilities][vector], and faster by skipping `.setAttribute` overhead and not
-needing to create an object to set rotation:
-
-```js
-// With three.js
-el.object3D.position.set(1, 2, 3);
-
-// With .setAttribute (less recommended).
-el.setAttribute('position', {x: 1, y: 2, z: 3});
-```
-
-We can also do incremental updates (which is just modifying a number) and use
-[Vector3][vector] utilities:
-
-```js
-el.object3D.position.x += 1;
-el.object3D.position.multiplyScalar(2);
-el.object3D.position.sub(someOtherVector);
-```
-
-### Getting Position
-
-To reflect updates done at the three.js level, A-Frame returns the actual
-`Object3D.position` vector object when doing `.getAttribute('position')`.  Note
-modifying the return value will modify the entity itself.
-
-See also [reading position and rotation of the camera](./camera.md#reading-position-or-rotation-of-the-camera).
+The world-space position of `#child2` would be `3 5 7`, by combining the position with the parent entity. In the parent's local space, `#child2`'s position would be seen as `2 3 4`.

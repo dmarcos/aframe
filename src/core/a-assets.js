@@ -4,7 +4,7 @@ var debug = require('../utils/debug');
 var registerElement = require('./a-register-element').registerElement;
 var THREE = require('../lib/three');
 
-var fileLoader = new THREE.FileLoader();
+var fileLoader = new THREE.XHRLoader();
 var warn = debug('core:a-assets:warn');
 
 /**
@@ -40,9 +40,6 @@ module.exports = registerElement('a-assets', {
         for (i = 0; i < imgEls.length; i++) {
           imgEl = fixUpMediaElement(imgEls[i]);
           loaded.push(new Promise(function (resolve, reject) {
-            // Set in cache because we won't be needing to call three.js loader if we have.
-            // a loaded media element.
-            THREE.Cache.files[imgEls[i].getAttribute('src')] = imgEl;
             imgEl.onload = resolve;
             imgEl.onerror = reject;
           }));
@@ -52,9 +49,6 @@ module.exports = registerElement('a-assets', {
         mediaEls = this.querySelectorAll('audio, video');
         for (i = 0; i < mediaEls.length; i++) {
           mediaEl = fixUpMediaElement(mediaEls[i]);
-          if (!mediaEl.src && !mediaEl.srcObject) {
-            warn('Audio/video asset has neither `src` nor `srcObject` attributes.');
-          }
           loaded.push(mediaElementLoaded(mediaEl));
         }
 
@@ -104,10 +98,9 @@ registerElement('a-asset-item', {
       value: function () {
         var self = this;
         var src = this.getAttribute('src');
-        fileLoader.setResponseType(
-          this.getAttribute('response-type') || inferResponseType(src));
-        fileLoader.load(src, function handleOnLoad (response) {
-          self.data = response;
+        fileLoader.load(src, function handleOnLoad (textResponse) {
+          THREE.Cache.files[src] = textResponse;
+          self.data = textResponse;
           /*
             Workaround for a Chrome bug. If another XHR is sent to the same url before the
             previous one closes, the second request never finishes.
@@ -160,13 +153,6 @@ function mediaElementLoaded (el) {
 
       // Compare seconds buffered to media duration.
       if (secondsBuffered >= el.duration) {
-        // Set in cache because we won't be needing to call three.js loader if we have.
-        // a loaded media element.
-        // Store video elements only. three.js loader is used for audio elements.
-        // See assetParse too.
-        if (el.tagName === 'VIDEO') {
-          THREE.Cache.files[el.getAttribute('src')] = el;
-        }
         resolve();
       }
     }
@@ -182,7 +168,7 @@ function fixUpMediaElement (mediaEl) {
   var newMediaEl = setCrossOrigin(mediaEl);
 
   // Plays inline for mobile.
-  if (newMediaEl.tagName && newMediaEl.tagName.toLowerCase() === 'video') {
+  if (newMediaEl.tagName === 'VIDEO') {
     newMediaEl.setAttribute('playsinline', '');
     newMediaEl.setAttribute('webkit-playsinline', '');
   }
@@ -219,9 +205,8 @@ function setCrossOrigin (mediaEl) {
     if (extractDomain(src) === window.location.host) { return mediaEl; }
   }
 
-  warn('Cross-origin element (e.g., <img>) was requested without `crossorigin` set. ' +
-       'A-Frame will re-request the asset with `crossorigin` attribute set. ' +
-       'Please set `crossorigin` on the element (e.g., <img crossorigin="anonymous">)', src);
+  warn('Cross-origin element was requested without `crossorigin` set. ' +
+       'A-Frame will re-request the asset with `crossorigin` attribute set.', src);
   mediaEl.crossOrigin = 'anonymous';
   newMediaEl = mediaEl.cloneNode(true);
   return newMediaEl;
@@ -238,26 +223,5 @@ function extractDomain (url) {
   var domain = url.indexOf('://') > -1 ? url.split('/')[2] : url.split('/')[0];
 
   // Find and remove port number.
-  return domain.substring(0, domain.indexOf(':'));
+  return domain.split(':')[0];
 }
-
-/**
- * Infer response-type attribute from src.
- * Default is text(default XMLHttpRequest.responseType)
- * but we use arraybuffer for .gltf and .glb files
- * because of THREE.GLTFLoader specification.
- *
- * @param {string} src
- * @returns {string}
- */
-function inferResponseType (src) {
-  var dotLastIndex = src.lastIndexOf('.');
-  if (dotLastIndex >= 0) {
-    var extension = src.slice(dotLastIndex, src.length);
-    if (extension === '.gltf' || extension === '.glb') {
-      return 'arraybuffer';
-    }
-  }
-  return 'text';
-}
-module.exports.inferResponseType = inferResponseType;

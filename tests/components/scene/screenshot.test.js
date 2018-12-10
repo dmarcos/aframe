@@ -1,22 +1,18 @@
-/* global assert, setup, suite, test */
+/* global assert, setup, suite, test, sinon */
 suite('screenshot', function () {
-  var component;
-  var sceneEl;
-
   setup(function (done) {
-    sceneEl = document.createElement('a-scene');
-    sceneEl.addEventListener('loaded', () => {
-      component = sceneEl.components.screenshot;
-      done();
-    });
-    document.body.appendChild(sceneEl);
+    var el = this.sceneEl = document.createElement('a-scene');
+    this.sinon = sinon.sandbox.create();
+    el.addEventListener('loaded', function () { done(); });
+    document.body.appendChild(el);
   });
 
   test('capture is called when key shortcut is pressed', function () {
-    var captureStub = this.sinon.stub(component, 'capture');
+    var el = this.sceneEl;
+    var captureStub = this.sinon.stub(el.components.screenshot, 'capture');
     // Must call onKeyDown method directly because Chrome doesn't provide a reliable method
     // for KeyboardEvent.
-    component.onKeyDown({
+    el.components.screenshot.onKeyDown({
       keyCode: 83,
       altKey: true,
       ctrlKey: true

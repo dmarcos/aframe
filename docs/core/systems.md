@@ -4,13 +4,7 @@ type: core
 layout: docs
 parent_section: core
 order: 4
-source_code: src/core/systems.js
-examples: 
-  - title: System providing envMaps
-    src: https://glitch.com/~aframe-refraction-system
 ---
-
-[ecs]: ../introduction/entity-component-system.md
 
 A system, of the [entity-component-system pattern][ecs], provides global scope,
 services, and management to classes of components. It provides public APIs
@@ -18,16 +12,12 @@ services, and management to classes of components. It provides public APIs
 through the scene element, and can help components interface with the global
 scene.
 
-[camera]: ../components/camera.md
-
 For example, the camera system manages all entities with the [camera
 component][camera], controlling which camera is the active camera.
 
 <!--toc-->
 
 ## Registering a System
-
-[components]: ./component.md
 
 A system is registered similarly to a [component][components].
 
@@ -58,9 +48,8 @@ AFRAME.registerComponent('my-component', {
 
 | Property | Description                                                        |
 | -------- | -------------                                                      |
-| data     | Data provided by the schema available across handlers and methods. |
-| el       | Reference to `<a-scene>`.                                          |
 | schema   | Behaves the same as [component schemas][schema]. Parses to `data`. |
+| data     | Data provided by the schema available across handlers and methods. |
 
 ## Methods
 
@@ -107,7 +96,7 @@ AFRAME.registerComponent('my-component', {
 
   update: function () {
     // Do stuff with `this.data`.
-    this.myObject = this.system.createComplexObject(this.data);
+    this.myObject = this.system.createComplexObject(data);
   }
 });
 ```
@@ -144,3 +133,7 @@ AFRAME.registerComponent('my-component', {
   }
 });
 ```
+
+[camera]: ../components/camera.md
+[components]: ./component.md
+[ecs]: ./index.md

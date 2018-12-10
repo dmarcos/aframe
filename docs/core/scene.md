@@ -4,8 +4,6 @@ type: core
 layout: docs
 parent_section: core
 order: 5
-source_code: src/core/scene/a-scene.js
-examples: []
 ---
 
 [entity]: ./entity.md
@@ -57,12 +55,6 @@ before kicking off the render loop.
 | systems       | Instantiated [systems][systems].                                          |
 | time          | Global uptime of scene in seconds.                                        |
 
-## States
-
-| Name    | Description                                                                                                            |
-|---------|------------------------------------------------------------------------------------------------------------------------|
-| vr-mode | Added and removed when entering and exiting VR, respectively. Check with `sceneEl.is('vr-mode')`. |
-
 ## Methods
 
 | Name    | Description                                                                                                            |
@@ -91,7 +83,7 @@ Components can be attached to the scene as well as entities:
 [embedded]: ../components/embedded.md
 [fog]: ../components/fog.md
 [keyboard-shortcuts]: ../components/keyboard-shortcuts.md
-[inspector]: ../introduction/visual-inspector-and-dev-tools.md
+[inspector]: ../guides/using-the-aframe-inspector.md
 [stats]: ../components/stats.md
 [vr-mode-ui]: ../components/vr-mode-ui.md
 
@@ -106,21 +98,7 @@ A-Frame ships with a few components to configure the scene:
 
 ## Running Content Scripts on the Scene
 
-The recommended way is to write a component, and attach it to the scene element. The scene and its children will be initialized before this component.
-
-```js
-AFRAME.registerComponent('do-something', {
-  init: function () {
-    var sceneEl = this.el;
-  }
-});
-```
-
-```html
-<a-scene do-something></a-scene>
-```
-
-If for some particular reason you prefer not to write a dedicated component you need to wait for the scene to finish initializing and attaching:
+We usually need to wait for the scene to finish initializing and attaching:
 
 ```js
 var scene = document.querySelector('a-scene');
@@ -135,4 +113,19 @@ function run () {
   var entity = scene.querySelector('a-entity');
   entity.setAttribute('material', 'color', 'red');
 }
+```
+
+But the recommended way is to write a component. When a component initializes,
+it is ensured that everything is attached and ready:
+
+```js
+AFRAME.registerComponent('do-something', {
+  init: function () {
+    var sceneEl = this.el;
+  }
+});
+```
+
+```html
+<a-scene do-something></a-scene>
 ```

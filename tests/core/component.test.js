@@ -1,9 +1,9 @@
-/* global AFRAME, assert, process, suite, teardown, test, setup, sinon, HTMLElement, HTMLHeadElement */
-var Component = require('core/component');
+/* global assert, process, suite, test, setup, sinon, HTMLElement */
+var buildData = require('core/component').buildData;
 var components = require('index').components;
-
 var helpers = require('../helpers');
 var registerComponent = require('index').registerComponent;
+var processSchema = require('core/schema').process;
 
 var CloneComponent = {
   init: function () {
@@ -33,48 +33,28 @@ suite('Component', function () {
     });
 
     test('uses default values', function () {
-      registerComponent('dummy', {
-        schema: {
-          color: {default: 'blue'},
-          size: {default: 5}
-        }
+      var schema = processSchema({
+        color: {default: 'blue'},
+        size: {default: 5}
       });
       var el = document.createElement('a-entity');
-      el.setAttribute('dummy', '');
-      var data = el.components.dummy.buildData({}, null);
+      var data = buildData(el, 'dummy', 'dummy', schema, {}, null);
       assert.equal(data.color, 'blue');
       assert.equal(data.size, 5);
     });
 
     test('uses default values for single-property schema', function () {
-      registerComponent('dummy', {
-        schema: {default: 'blue'}
+      var schema = processSchema({
+        default: 'blue'
       });
       var el = document.createElement('a-entity');
-      el.setAttribute('dummy', '');
-      var data = el.components.dummy.buildData(undefined, null);
+      var data = buildData(el, 'dummy', 'dummy', schema, undefined, null);
       assert.equal(data, 'blue');
-    });
-
-    test('preserves type of default values', function () {
-      registerComponent('dummy', {
-        schema: {
-          list: {default: [1, 2, 3, 4]},
-          none: {default: null},
-          string: {default: ''}
-        }
-      });
-      var el = document.createElement('a-entity');
-      el.setAttribute('dummy', '');
-      var data = el.components.dummy.buildData(undefined, null);
-      assert.shallowDeepEqual(data.list, [1, 2, 3, 4]);
-      assert.equal(data.none, null);
-      assert.equal(data.string, '');
     });
 
     test('uses mixin values', function () {
       var data;
-      registerComponent('dummy', {
+      var TestComponent = registerComponent('dummy', {
         schema: {
           color: {default: 'red'},
           size: {default: 5}
@@ -82,17 +62,17 @@ suite('Component', function () {
       });
       var el = document.createElement('a-entity');
       var mixinEl = document.createElement('a-mixin');
+
       mixinEl.setAttribute('dummy', 'color: blue; size: 10');
       el.mixinEls = [mixinEl];
-      el.setAttribute('dummy', '');
-      data = el.components.dummy.buildData({}, null);
+      data = buildData(el, 'dummy', 'dummy', TestComponent.prototype.schema, {}, null);
       assert.equal(data.color, 'blue');
       assert.equal(data.size, 10);
     });
 
     test('uses mixin values for single-property schema', function () {
       var data;
-      registerComponent('dummy', {
+      var TestComponent = registerComponent('dummy', {
         schema: {
           default: 'red'
         }
@@ -101,14 +81,13 @@ suite('Component', function () {
       var mixinEl = document.createElement('a-mixin');
       mixinEl.setAttribute('dummy', 'blue');
       el.mixinEls = [mixinEl];
-      el.setAttribute('dummy', '');
-      data = el.components.dummy.buildData(undefined, null);
+      data = buildData(el, 'dummy', 'dummy', TestComponent.prototype.schema, undefined, null);
       assert.equal(data, 'blue');
     });
 
     test('uses defined values', function () {
       var data;
-      registerComponent('dummy', {
+      var TestComponent = registerComponent('dummy', {
         schema: {
           color: {default: 'red'},
           size: {default: 5}
@@ -119,463 +98,71 @@ suite('Component', function () {
 
       mixinEl.setAttribute('dummy', 'color: blue; size: 10');
       el.mixinEls = [mixinEl];
-      el.setAttribute('dummy', '');
-      data = el.components.dummy.buildData({color: 'green', size: 20}, 'color: green; size: 20');
+      data = buildData(el, 'dummy', 'dummy', TestComponent.prototype.schema, {
+        color: 'green', size: 20
+      }, 'color: green; size: 20');
       assert.equal(data.color, 'green');
       assert.equal(data.size, 20);
     });
 
     test('uses defined values for single-property schema', function () {
       var data;
-      registerComponent('dummy', {
+      var TestComponent = registerComponent('dummy', {
         schema: {default: 'red'}
       });
       var el = document.createElement('a-entity');
       var mixinEl = document.createElement('a-mixin');
       mixinEl.setAttribute('dummy', 'blue');
       el.mixinEls = [mixinEl];
-      el.setAttribute('dummy', '');
-      data = el.components.dummy.buildData('green', 'green');
+      data = buildData(el, 'dummy', 'dummy', TestComponent.prototype.schema, 'green', 'green');
       assert.equal(data, 'green');
     });
 
-    test('returns default for single-prop schema when attr is empty string', function () {
+    test('returns default value for a single-property schema ' +
+         'when the attribute is empty string', function () {
       var data;
-      registerComponent('dummy', {
+      var TestComponent = registerComponent('dummy', {
         schema: {default: 'red'}
       });
       var el = document.createElement('a-entity');
       el.setAttribute('dummy', '');
-      data = el.components.dummy.buildData('red');
+      data = buildData(el, 'dummy', 'dummy', TestComponent.prototype.schema, 'red');
       assert.equal(data, 'red');
-    });
-
-    test('multiple vec3 properties do not share same default value object', function (done) {
-      var data;
-      var el = entityFactory();
-      var TestComponent = registerComponent('dummy', {
-        schema: {
-          direction: {type: 'vec3'},
-          position: {type: 'vec3'}
-        }
-      });
-      el.addEventListener('loaded', function () {
-        el.setAttribute('dummy', '');
-        data = el.getAttribute('dummy');
-        assert.shallowDeepEqual(data.direction,
-                                TestComponent.prototype.schema.direction.default);
-        assert.shallowDeepEqual(data.position,
-                                TestComponent.prototype.schema.position.default);
-        assert.notEqual(data.direction, data.position);
-        done();
-      });
-    });
-
-    test('boolean properties are preserved when updating the component data', function () {
-      var data;
-      registerComponent('dummy', {
-        schema: {
-          depthTest: {default: true},
-          color: {default: 'red'}
-        }
-      });
-      var el = document.createElement('a-entity');
-      el.setAttribute('dummy', {color: 'blue', depthTest: false});
-      data = el.components.dummy.buildData({color: 'red'});
-      assert.equal(data.depthTest, false);
-      assert.equal(data.color, 'red');
-    });
-
-    test('returns data for single-prop if default is null', function () {
-      var el = document.createElement('a-entity');
-      registerComponent('test', {
-        schema: {default: null}
-      });
-      el.setAttribute('test', '');
-      assert.equal(el.components.test.buildData(), null);
-      assert.equal(el.components.test.buildData(null), null);
-      assert.equal(el.components.test.buildData('foo'), 'foo');
-    });
-
-    test('returns data for multi-prop if default is null with previousData', function () {
-      var el = document.createElement('a-entity');
-      registerComponent('test', {
-        schema: {
-          foo: {default: null}
-        }
-      });
-      el.setAttribute('test', '');
-      el.components.test.attrValue = {foo: null};
-      assert.equal(el.components.test.buildData().foo, null);
-      assert.equal(el.components.test.buildData({foo: null}).foo, null);
-      assert.equal(el.components.test.buildData({foo: 'foo'}).foo, 'foo');
-    });
-
-    test('clones array property type', function () {
-      var array = ['a'];
-      var data;
-      var el;
-      registerComponent('test', {schema: {default: array}});
-      el = document.createElement('a-entity');
-      el.setAttribute('test', '');
-      data = el.components.test.buildData();
-      assert.equal(data[0], 'a');
-      assert.notEqual(data, array);
-    });
-
-    test('does not override set data with mixin', function (done) {
-      var el;
-      var mixinEl;
-
-      el = helpers.entityFactory();
-
-      registerComponent('dummy', {
-        schema: {
-          color: {default: 'blue'},
-          size: {default: 5}
-        }
-      });
-
-      mixinEl = document.createElement('a-mixin');
-      mixinEl.setAttribute('id', 'mixindummy');
-      mixinEl.setAttribute('dummy', 'size: 1');
-
-      el.addEventListener('loaded', () => {
-        el.sceneEl.appendChild(mixinEl);
-        el.setAttribute('mixin', 'mixindummy');
-        el.setAttribute('dummy', 'size', 20);
-        el.setAttribute('dummy', 'color', 'red');
-        assert.equal(el.getAttribute('dummy').color, 'red');
-        assert.equal(el.getAttribute('dummy').size, 20);
-        done();
-      });
-    });
-
-    test('copies data correctly for single-prop object-based with string input', done => {
-      registerComponent('test', {
-        schema: {
-          default: {},
-          parse: function (value) {
-            return value;
-          }
-        }
-      });
-
-      helpers.elFactory().then(el => {
-        el.setAttribute('test', 'foo');
-        el.setAttribute('test', 'bar');
-        assert.equal(el.components.test.data, 'bar');
-        done();
-      });
     });
   });
 
   suite('updateProperties', function () {
-    var el;
-
-    setup(function () {
-      el = entityFactory();
-      components.dummy = undefined;
-    });
-
-    test('emits componentchanged for multi-prop', function (done) {
+    test('emits componentchanged', function (done) {
+      var el = entityFactory();
       el.setAttribute('material', 'color: red');
       el.addEventListener('componentchanged', function (evt) {
         if (evt.detail.name !== 'material') { return; }
+        assert.equal(evt.detail.oldData.color, 'red');
+        assert.equal(evt.detail.newData.color, 'blue');
         assert.equal(evt.detail.name, 'material');
-        assert.equal(el.getAttribute('material').color, 'blue');
         assert.ok('id' in evt.detail);
         done();
       });
-      setTimeout(() => {
+      process.nextTick(function () {
         el.setAttribute('material', 'color: blue');
       });
     });
 
-    test('emits componentchanged for single-prop', function (done) {
-      el.setAttribute('position', {x: 0, y: 0, z: 0});
-      el.addEventListener('componentchanged', function (evt) {
-        if (evt.detail.name !== 'position') { return; }
-        assert.shallowDeepEqual(el.getAttribute('position'), {x: 1, y: 2, z: 3});
-        assert.equal(evt.detail.name, 'position');
-        assert.ok('id' in evt.detail);
-        done();
-      });
-      setTimeout(() => {
-        el.setAttribute('position', {x: 1, y: 2, z: 3});
-      });
-    });
-
-    test('does not emit componentchanged for multi-prop if not changed', function (done) {
-      function componentChanged (evt) {
-        if (evt.detail.name !== 'material') { return; }
-        el.removeEventListener('componentchanged', componentChanged);
-        // Should not reach here.
-        assert.equal(true, false, 'Component should not have emitted changed.');
-      }
-
-      function componentInitialized (evt) {
-        if (evt.detail.name !== 'material') { return; }
-        el.addEventListener('componentchanged', componentChanged);
-        el.setAttribute('material', 'color', 'red');
-      }
-
-      el.addEventListener('componentinitialized', componentInitialized);
-      el.setAttribute('material', 'color', 'red');
-
-      // Have `done()` race with the failing assertion in the event handler.
-      setTimeout(() => {
-        el.removeEventListener('componentchanged', componentChanged);
-        el.removeEventListener('componentinitialized', componentInitialized);
-        done();
-      }, 100);
-    });
-
-    test('does not update for multi-prop if not changed', function (done) {
-      var spy = this.sinon.spy();
-
-      AFRAME.registerComponent('test', {
-        schema: {
-          foo: {type: 'string'},
-          bar: {type: 'string'}
-        },
-
-        update: function () {
-          spy();
-        }
-      });
-
-      el.addEventListener('loaded', () => {
-        el.setAttribute('test', {foo: 'foo', bar: 'bar'});
-        el.setAttribute('test', {foo: 'foo', bar: 'bar'});
-        el.setAttribute('test', {foo: 'foo', bar: 'bar'});
-        assert.equal(spy.getCalls().length, 1);
-        done();
-      });
-    });
-
-    test('does not update for multi-prop if not changed using same object', function (done) {
-      var data = {foo: 'foo', bar: 'bar'};
-      var spy = this.sinon.spy();
-
-      AFRAME.registerComponent('test', {
-        schema: {
-          foo: {type: 'string'},
-          bar: {type: 'string'}
-        },
-
-        update: function () {
-          spy();
-        }
-      });
-
-      el.addEventListener('loaded', () => {
-        el.setAttribute('test', data);
-        el.setAttribute('test', data);
-        el.setAttribute('test', data);
-        assert.equal(spy.getCalls().length, 1);
-        done();
-      });
-    });
-
-    test('does not emit componentchanged for single-prop if not changed', function (done) {
-      function componentInitialized (evt) {
-        if (evt.detail.name !== 'visible') { return; }
-        el.addEventListener('componentchanged', componentChanged);
-        el.setAttribute('visible', false);
-      }
-
-      function componentChanged (evt) {
-        if (evt.detail.name !== 'visible') { return; }
-        // Should not reach here.
-        assert.equal(true, false, 'Component should not have emitted changed.');
-      }
-
-      el.addEventListener('componentinitialized', componentInitialized);
-      el.setAttribute('visible', false);
-
-      // Have `done()` race with the failing assertion in the event handler.
-      setTimeout(() => {
-        el.removeEventListener('componentinitialized', componentInitialized);
-        el.removeEventListener('componentchanged', componentChanged);
-        done();
-      }, 100);
-    });
-
-    test('does not emit componentchanged for value if not changed', function (done) {
-      el.addEventListener('componentinitialized', function (evt) {
-        if (evt.detail.name !== 'visible') { return; }
-
-        el.addEventListener('componentchanged', function (evt) {
-          if (evt.detail.name !== 'visible') { return; }
-          // Should not reach here.
-          assert.equal(true, false, 'Component should not have emitted changed.');
-        });
-
-        // Update.
-        el.setAttribute('visible', false);
-
-        // Have `done()` race with the failing assertion in the event handler.
-        setTimeout(() => {
-          done();
-        }, 100);
-      });
-      // Initialization.
-      el.setAttribute('visible', false);
-    });
-
     test('emits componentinitialized', function (done) {
+      var el = entityFactory();
       el.addEventListener('componentinitialized', function (evt) {
         if (evt.detail.name !== 'material') { return; }
+        assert.ok(evt.detail.data);
         assert.ok('id' in evt.detail);
         assert.equal(evt.detail.name, 'material');
         done();
       });
       el.setAttribute('material', '');
     });
-
-    test('does not clone selector property default into data', function (done) {
-      registerComponent('dummy', {
-        schema: {type: 'selector', default: document.body}
-      });
-
-      helpers.elFactory().then(el => {
-        el.setAttribute('dummy', 'head');
-        assert.equal(el.components.dummy.data, el.components.dummy.schema.default);
-        done();
-      });
-    });
-
-    test('clones plain object schema default into data', function () {
-      var el;
-      registerComponent('dummy', {
-        schema: {type: 'vec3', default: {x: 1, y: 1, z: 1}}
-      });
-      el = document.createElement('a-entity');
-      el.hasLoaded = true;
-      el.setAttribute('dummy', '2 2 2');
-      el.components.dummy.updateProperties('');
-      assert.notEqual(el.components.dummy.data, el.components.dummy.schema.default);
-      assert.deepEqual(el.components.dummy.data, {x: 1, y: 1, z: 1});
-    });
-
-    test('does not clone properties from attrValue into data that are not plain objects', function () {
-      var el;
-      registerComponent('dummy', {
-        schema: {
-          color: {default: 'blue'},
-          direction: {type: 'vec3'},
-          el: {type: 'selector', default: 'body'}
-        }
-      });
-      el = document.createElement('a-entity');
-      el.hasLoaded = true;
-      el.setAttribute('dummy', '');
-      assert.notOk(el.components.dummy.attrValue.el);
-    });
-
-    test('does not clone props from attrValue into data that are not plain objects', function () {
-      var attrValue;
-      var el;
-      var data;
-
-      registerComponent('dummy', {
-        schema: {
-          color: {type: 'string'},
-          direction: {type: 'vec3'},
-          el: {type: 'selector', default: 'body'}
-        }
-      });
-
-      el = document.createElement('a-entity');
-      el.hasLoaded = true;
-      el.setAttribute('dummy', '');
-      assert.notOk(el.components.dummy.attrValue.el);
-
-      // Direction property preserved across updateProperties calls but cloned into a different
-      // object.
-      el.components.dummy.updateProperties({
-        color: 'green',
-        direction: {x: 1, y: 1, z: 1},
-        el: document.head
-      });
-      el.components.dummy.updateProperties({
-        color: 'red',
-        el: document.head
-      });
-      data = el.getAttribute('dummy');
-      attrValue = el.components.dummy.attrValue;
-      assert.notEqual(data, attrValue);
-      assert.equal(data.color, attrValue.color);
-      // HTMLElement not cloned in attrValue, reference is shared instead.
-      assert.equal(data.el, attrValue.el);
-      assert.equal(data.el.constructor, HTMLHeadElement);
-      assert.deepEqual(data.direction, {x: 1, y: 1, z: 1});
-      assert.deepEqual(attrValue.direction, {x: 1, y: 1, z: 1});
-
-      el.components.dummy.updateProperties({
-        color: 'red',
-        direction: {x: 1, y: 1, z: 1}
-      });
-      data = el.getAttribute('dummy');
-      // HTMLElement not cloned in attrValue, reference is shared instead.
-      assert.equal(data.el.constructor, HTMLHeadElement);
-      assert.equal(data.el, el.components.dummy.attrValue.el);
-    });
-
-    test('updates data when combining setAttribute and object3D manipulation', function () {
-      var el = document.createElement('a-entity');
-      el.hasLoaded = true;
-      el.setAttribute('position', '3 3 3');
-      assert.equal(3, el.object3D.position.x);
-      assert.equal(3, el.object3D.position.y);
-      assert.equal(3, el.object3D.position.z);
-      el.object3D.position.set(5, 5, 5);
-      assert.equal(5, el.object3D.position.x);
-      assert.equal(5, el.object3D.position.y);
-      assert.equal(5, el.object3D.position.z);
-      el.setAttribute('position', '3 3 3');
-      assert.equal(3, el.object3D.position.x);
-      assert.equal(3, el.object3D.position.y);
-      assert.equal(3, el.object3D.position.z);
-    });
-  });
-
-  suite('resetProperty', function () {
-    var el;
-
-    setup(function (done) {
-      el = entityFactory();
-      el.addEventListener('loaded', () => { done(); });
-    });
-
-    test('resets property to default value', function () {
-      AFRAME.registerComponent('test', {
-        schema: {
-          bar: {default: 5},
-          foo: {default: 5}
-        }
-      });
-      el.setAttribute('test', {bar: 10, foo: 10});
-      el.components.test.resetProperty('bar');
-      assert.equal(el.getAttribute('test').bar, 5);
-      assert.equal(el.getAttribute('test').foo, 10);
-    });
-
-    test('resets property to default value for single-prop', function () {
-      AFRAME.registerComponent('test', {
-        schema: {default: 5}
-      });
-      el.setAttribute('test', 10);
-      el.components.test.resetProperty();
-      assert.equal(el.getAttribute('test'), 5);
-    });
   });
 
   suite('third-party components', function () {
-    var el;
     setup(function () {
-      el = entityFactory();
       delete components.clone;
     });
 
@@ -586,6 +173,7 @@ suite('Component', function () {
     });
 
     test('can change behavior of entity', function (done) {
+      var el = entityFactory();
       registerComponent('clone', CloneComponent);
 
       el.addEventListener('loaded', function () {
@@ -604,12 +192,6 @@ suite('Component', function () {
         registerComponent('my__component', CloneComponent);
       }, Error);
       assert.notOk('my__component' in components);
-    });
-
-    test('can have underscore in component id', function () {
-      AFRAME.registerComponent('test', {multiple: true});
-      el.setAttribute('test__foo__bar', '');
-      assert.equal(el.components['test__foo__bar'].id, 'foo__bar');
     });
   });
 
@@ -713,7 +295,7 @@ suite('Component', function () {
       var component = new TestComponent(el);
       var componentObj = {position: {x: 1, y: 2, z: 3}};
       var componentString = component.stringify(componentObj);
-      assert.equal(componentString, 'position: 1 2 3');
+      assert.deepEqual(componentString, 'position:1 2 3');
     });
   });
 
@@ -735,11 +317,8 @@ suite('Component', function () {
   });
 
   suite('updateProperties', function () {
-    setup(function (done) {
-      var el = this.el = entityFactory();
+    setup(function () {
       components.dummy = undefined;
-      if (el.hasLoaded) { done(); }
-      el.addEventListener('loaded', function () { done(); });
     });
 
     test('updates the schema of a component', function () {
@@ -749,7 +328,8 @@ suite('Component', function () {
           this.extendSchema({energy: {default: 100}});
         }
       });
-      var component = new TestComponent(this.el);
+      var el = document.createElement('a-entity');
+      var component = new TestComponent(el);
       component.updateProperties(null);
       assert.equal(component.schema.color.default, 'red');
       assert.equal(component.schema.energy.default, 100);
@@ -760,7 +340,8 @@ suite('Component', function () {
       var TestComponent = registerComponent('dummy', {
         schema: {color: {default: 'red'}}
       });
-      var component = new TestComponent(this.el);
+      var el = document.createElement('a-entity');
+      var component = new TestComponent(el);
       component.updateProperties(null);
       assert.equal(component.data.color, 'red');
     });
@@ -769,166 +350,29 @@ suite('Component', function () {
       var TestComponent = registerComponent('dummy', {
         schema: {color: {default: 'red'}}
       });
-      var component = new TestComponent(this.el);
+      var el = document.createElement('a-entity');
+      var component = new TestComponent(el);
       component.updateProperties({color: 'blue'});
       assert.equal(component.data.color, 'blue');
     });
   });
 
-  suite('init', function () {
-    setup(function (done) {
-      components.dummy = undefined;
-      var el = this.el = entityFactory();
-      if (el.hasLoaded) { done(); }
-      el.addEventListener('loaded', function () { done(); });
-    });
-
-    test('init is called once if the init routine sets the component', function () {
-      var initCanaryStub = sinon.stub();
-      var el = this.el;
-      registerComponent('dummy', {
-        schema: {color: {default: 'red'}},
-        init: function () {
-          this.initCanary();
-          this.el.setAttribute('dummy', {color: 'green'});
-        },
-        initCanary: initCanaryStub
-      });
-      el.setAttribute('dummy', {color: 'blue'});
-      assert.equal(el.getAttribute('dummy').color, 'green');
-      sinon.assert.calledOnce(initCanaryStub);
-    });
-  });
-
   suite('update', function () {
-    setup(function (done) {
+    setup(function () {
       components.dummy = undefined;
-      var el = this.el = entityFactory();
-      if (el.hasLoaded) { done(); }
-      el.addEventListener('loaded', function () { done(); });
     });
 
     test('not called if component data does not change', function () {
       var updateStub = sinon.stub();
       var TestComponent = registerComponent('dummy', {
-        schema: {color: {default: 'red'}}
+        schema: {color: {default: 'red'}},
+        update: updateStub
       });
-      var component = new TestComponent(this.el);
-      component.update = updateStub;
+      var el = document.createElement('a-entity');
+      var component = new TestComponent(el);
       component.updateProperties({color: 'blue'});
       component.updateProperties({color: 'blue'});
       assert.ok(updateStub.calledOnce);
-    });
-
-    test('supports array properties', function () {
-      var updateStub = sinon.stub();
-      var TestComponent = registerComponent('dummy', {
-        schema: {list: {default: ['a']}}
-      });
-      var component = new TestComponent(this.el);
-      component.update = updateStub;
-      component.updateProperties({list: ['b']});
-      component.updateProperties({list: ['b']});
-      sinon.assert.calledOnce(updateStub);
-    });
-
-    test('emit componentchanged when update calls setAttribute', function (done) {
-      var component;
-      var TestComponent;
-      TestComponent = registerComponent('dummy', {
-        schema: {color: {default: 'red'}},
-        update: function () { this.el.setAttribute('dummy', 'color', 'blue'); }
-      });
-      this.el.addEventListener('componentchanged', evt => {
-        assert.equal(evt.detail.name, 'dummy');
-        assert.equal(this.el.getAttribute('dummy').color, 'blue');
-        done();
-      });
-      component = new TestComponent(this.el);
-      assert.equal(component.data.color, 'blue');
-    });
-
-    test('makes oldData empty object on first call when single property component with an object as default initializes', function () {
-      var updateStub = sinon.stub();
-      registerComponent('dummy', {
-        schema: {type: 'vec3'},
-        update: updateStub
-      });
-      this.el.setAttribute('dummy', '');
-      sinon.assert.calledOnce(updateStub);
-      // old Data passed to the update method
-      assert.deepEqual(updateStub.getCalls()[0].args[0], {});
-    });
-
-    test('makes oldData empty object on first call when multiple property component initializes', function () {
-      var updateStub = sinon.stub();
-      registerComponent('dummy', {
-        schema: {
-          color: {default: 'red'},
-          size: {default: 0}
-        },
-        update: updateStub
-      });
-      this.el.setAttribute('dummy', '');
-      sinon.assert.calledOnce(updateStub);
-      // old Data passed to the update method
-      assert.deepEqual(updateStub.getCalls()[0].args[0], {});
-    });
-
-    test('oldData is undefined on the first call when a single property component initializes', function () {
-      var updateStub = sinon.stub();
-      registerComponent('dummy', {
-        schema: {default: 0},
-        update: updateStub
-      });
-      this.el.setAttribute('dummy', '');
-      sinon.assert.calledOnce(updateStub);
-      // old Data passed to the update method
-      assert.equal(updateStub.getCalls()[0].args[0], undefined);
-    });
-
-    test('called when modifying component with value returned from getAttribute', function () {
-      var el = this.el;
-      var direction;
-      var updateStub = sinon.stub();
-      registerComponent('dummy', {
-        schema: {type: 'vec3', default: {x: 1, y: 1, z: 1}},
-        update: updateStub
-      });
-      el.setAttribute('dummy', '');
-      direction = el.getAttribute('dummy');
-      assert.deepEqual(direction, {x: 1, y: 1, z: 1});
-      direction.x += 1;
-      direction.y += 1;
-      direction.z += 1;
-      el.setAttribute('dummy', direction);
-      sinon.assert.calledTwice(updateStub);
-      // oldData passed to the update method.
-      assert.equal(updateStub.getCalls()[0].args[0].x, undefined);
-      assert.equal(updateStub.getCalls()[0].args[0].y, undefined);
-      assert.equal(updateStub.getCalls()[0].args[0].z, undefined);
-      assert.deepEqual(updateStub.getCalls()[1].args[0], {x: 1, y: 1, z: 1});
-      assert.deepEqual(el.components.dummy.data, {x: 2, y: 2, z: 2});
-    });
-
-    test('properly passes oldData and data properly on recursive calls to setAttribute', function () {
-      var el = this.el;
-      registerComponent('dummy', {
-        schema: {
-          color: {default: 'red'},
-          size: {default: 0}
-        },
-        update: function (oldData) {
-          if (this.data.color === 'red') {
-            this.el.setAttribute('dummy', 'color', 'blue');
-          }
-          if (oldData.color === 'red') {
-            this.el.setAttribute('dummy', 'color', 'green');
-          }
-        }
-      });
-      el.setAttribute('dummy', 'color: red');
-      assert.equal(el.getAttribute('dummy').color, 'green');
     });
   });
 
@@ -945,25 +389,7 @@ suite('Component', function () {
       el.setAttribute('dummy', {color: 'blue'});
       assert.equal(HTMLElement.prototype.getAttribute.call(el, 'dummy'), '');
       el.components.dummy.flushToDOM();
-      assert.equal(HTMLElement.prototype.getAttribute.call(el, 'dummy'), 'color: blue');
-    });
-
-    test('init and update are not called for a not loaded entity', function () {
-      var updateStub = sinon.stub();
-      var initStub = sinon.stub();
-      var el = document.createElement('a-entity');
-      registerComponent('dummy', {
-        schema: {color: {default: 'red'}},
-        init: initStub,
-        update: updateStub
-      });
-      assert.notOk(el.hasLoaded);
-      el.setAttribute('dummy', {color: 'blue'});
-      assert.equal(HTMLElement.prototype.getAttribute.call(el, 'dummy'), '');
-      el.components.dummy.flushToDOM();
-      sinon.assert.notCalled(initStub);
-      sinon.assert.notCalled(updateStub);
-      assert.equal(HTMLElement.prototype.getAttribute.call(el, 'dummy'), 'color: blue');
+      assert.equal(HTMLElement.prototype.getAttribute.call(el, 'dummy'), 'color:blue');
     });
   });
 
@@ -1044,92 +470,6 @@ suite('Component', function () {
       dummyComponent.pause();
       dummyComponent.pause();
       sinon.assert.calledOnce(this.pauseStub);
-    });
-  });
-
-  test('applies default array property types with no defined value', function (done) {
-    var el;
-    registerComponent('test', {
-      schema: {
-        arr: {default: ['foo']}
-      },
-
-      update: function () {
-        assert.equal(this.data.arr[0], 'foo');
-        done();
-      }
-    });
-    el = entityFactory();
-    el.addEventListener('loaded', () => {
-      el.setAttribute('test', '');
-    });
-  });
-});
-
-suite('registerComponent warnings', function () {
-  var sceneEl;
-  var script;
-
-  setup(function (done) {
-    var el = entityFactory();
-    setTimeout(() => {
-      sceneEl = el.sceneEl;
-      script = document.createElement('script');
-      script.innerHTML = `AFRAME.registerComponent('testorder', {});`;
-      done();
-    });
-  });
-
-  teardown(function () {
-    delete AFRAME.components.testorder;
-    delete Component.registrationOrderWarnings.testorder;
-    if (script && script.parentNode) { script.parentNode.removeChild(script); }
-  });
-
-  test('does not throw warning if component registered in head', function (done) {
-    assert.notOk(Component.registrationOrderWarnings.testorder, 'waht');
-    document.head.appendChild(script);
-    setTimeout(() => {
-      assert.notOk(Component.registrationOrderWarnings.testorder);
-      done();
-    });
-  });
-
-  test('does not throw warning if component registered before scene', function (done) {
-    assert.notOk(Component.registrationOrderWarnings.testorder, 'foo');
-    document.body.insertBefore(script, sceneEl);
-    setTimeout(() => {
-      assert.notOk(Component.registrationOrderWarnings.testorder);
-      done();
-    });
-  });
-
-  test('does not throw warning if component registered after scene loaded', function (done) {
-    assert.notOk(Component.registrationOrderWarnings.testorder, 'blah');
-    sceneEl.addEventListener('loaded', () => {
-      document.body.appendChild(script);
-      setTimeout(() => {
-        assert.notOk(Component.registrationOrderWarnings.testorder);
-        done();
-      });
-    });
-  });
-
-  test('throws warning if component registered after scene', function (done) {
-    assert.notOk(Component.registrationOrderWarnings.testorder);
-    document.body.appendChild(script);
-    setTimeout(() => {
-      assert.ok(Component.registrationOrderWarnings.testorder);
-      done();
-    });
-  });
-
-  test('throws warning if component registered within scene', function (done) {
-    assert.notOk(Component.registrationOrderWarnings.testorder);
-    sceneEl.appendChild(script);
-    setTimeout(() => {
-      assert.ok(Component.registrationOrderWarnings.testorder);
-      done();
     });
   });
 });

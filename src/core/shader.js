@@ -4,7 +4,6 @@ var processSchema = schema.process;
 var shaders = module.exports.shaders = {};  // Keep track of registered shaders.
 var shaderNames = module.exports.shaderNames = [];  // Keep track of the names of registered shaders.
 var THREE = require('../lib/three');
-var utils = require('../utils');
 
 // A-Frame properties to three.js uniform types.
 var propertyToThreeMapping = {
@@ -42,7 +41,7 @@ Shader.prototype = {
 
   fragmentShader:
     'void main() {' +
-      'gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);' +
+      'gl_FragColor = vec4(1.0,0.0,1.0,1.0);' +
     '}',
 
   /**
@@ -52,7 +51,7 @@ Shader.prototype = {
   init: function (data) {
     this.attributes = this.initVariables(data, 'attribute');
     this.uniforms = this.initVariables(data, 'uniform');
-    this.material = new (this.raw ? THREE.RawShaderMaterial : THREE.ShaderMaterial)({
+    this.material = new THREE.ShaderMaterial({
       // attributes: this.attributes,
       uniforms: this.uniforms,
       vertexShader: this.vertexShader,
@@ -62,17 +61,18 @@ Shader.prototype = {
   },
 
   initVariables: function (data, type) {
-    var key;
-    var schema = this.schema;
+    var self = this;
     var variables = {};
-    var varType;
-
-    for (key in schema) {
-      if (schema[key].is !== type) { continue; }
-      varType = propertyToThreeMapping[schema[key].type];
+    var schema = this.schema;
+    var schemaKeys = Object.keys(schema);
+    schemaKeys.forEach(processSchema);
+    function processSchema (key) {
+      if (schema[key].is !== type) { return; }
+      var varType = propertyToThreeMapping[schema[key].type];
+      var varValue = schema[key].parse(data[key] || schema[key].default);
       variables[key] = {
         type: varType,
-        value: undefined  // Let updateVariables handle setting these.
+        value: self.parseValue(schema[key].type, varValue)
       };
     }
     return variables;
@@ -90,30 +90,15 @@ Shader.prototype = {
   },
 
   updateVariables: function (data, type) {
-    var key;
-    var materialKey;
+    var self = this;
+    var variables = type === 'uniform' ? this.uniforms : this.attributes;
+    var dataKeys = Object.keys(data);
     var schema = this.schema;
-    var variables;
-
-    variables = type === 'uniform' ? this.uniforms : this.attributes;
-    for (key in data) {
-      if (!schema[key] || schema[key].is !== type) { continue; }
-
-      if (schema[key].type === 'map') {
-        // If data unchanged, get out early.
-        if (!variables[key] || variables[key].value === data[key]) { continue; }
-
-        // Special handling is needed for textures.
-        materialKey = '_texture_' + key;
-
-        // We can't actually set the variable correctly until we've loaded the texture.
-        this.setMapOnTextureLoad(variables, key, materialKey);
-
-        // Kick off the texture update now that handler is added.
-        utils.material.updateMapMaterialFromData(materialKey, key, this, data);
-        continue;
-      }
-      variables[key].value = this.parseValue(schema[key].type, data[key]);
+    dataKeys.forEach(processData);
+    function processData (key) {
+      if (!schema[key] || schema[key].is !== type) { return; }
+      if (variables[key].value === data[key]) { return; }
+      variables[key].value = self.parseValue(schema[key].type, data[key]);
       variables[key].needsUpdate = true;
     }
   },
@@ -134,21 +119,10 @@ Shader.prototype = {
         color = new THREE.Color(value);
         return new THREE.Vector3(color.r, color.g, color.b);
       }
-      case 'map': {
-        return THREE.ImageUtils.loadTexture(value);
-      }
       default: {
         return value;
       }
     }
-  },
-
-  setMapOnTextureLoad: function (variables, key, materialKey) {
-    var self = this;
-    this.el.addEventListener('materialtextureloaded', function () {
-      variables[key].value = self.material[materialKey];
-      variables[key].needsUpdate = true;
-    });
   }
 };
 

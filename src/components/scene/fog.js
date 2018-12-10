@@ -10,7 +10,7 @@ var warn = debug('components:fog:warn');
  */
 module.exports.Component = register('fog', {
   schema: {
-    color: {type: 'color', default: '#000'},
+    color: {default: '#000'},
     density: {default: 0.00025},
     far: {default: 1000, min: 0},
     near: {default: 1, min: 0},
@@ -47,9 +47,11 @@ module.exports.Component = register('fog', {
    */
   remove: function () {
     var fog = this.el.object3D.fog;
-    if (!fog) { return; }
-    fog.far = 0;
-    fog.near = 0.1;
+    if (fog) {
+      fog.density = 0;
+      fog.far = 0;
+      fog.near = 0;
+    }
   }
 });
 

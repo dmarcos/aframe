@@ -3,7 +3,6 @@ title: <a-dodecahedron>
 type: primitives
 layout: docs
 parent_section: primitives
-source_code: src/extras/primitives/primitives/meshPrimitives.js
 ---
 
 ## Example

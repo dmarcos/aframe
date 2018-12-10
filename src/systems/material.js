@@ -1,38 +1,25 @@
 var registerSystem = require('../core/system').registerSystem;
 var THREE = require('../lib/three');
 var utils = require('../utils/');
-var isHLS = require('../utils/material').isHLS;
 
-var bind = utils.bind;
 var debug = utils.debug;
 var error = debug('components:texture:error');
 var TextureLoader = new THREE.TextureLoader();
 var warn = debug('components:texture:warn');
 
-TextureLoader.setCrossOrigin('anonymous');
-
 /**
  * System for material component.
  * Handle material registration, updates (for fog), and texture caching.
  *
- * @member {object} materials - Registered materials.
- * @member {object} textureCounts - Number of times each texture is used. Tracked
- *         separately from textureCache, because the cache (1) is populated in
- *         multiple places, and (2) may be cleared at any time.
- * @member {object} textureCache - Texture cache for:
+ * @member materials {object} - Registered materials.
+ * @member textureCache {object} - Texture cache for:
  *   - Images: textureCache has mapping of src -> repeat -> cached three.js texture.
  *   - Videos: textureCache has mapping of videoElement -> cached three.js texture.
  */
 module.exports.System = registerSystem('material', {
   init: function () {
     this.materials = {};
-    this.textureCounts = {};
     this.textureCache = {};
-
-    this.sceneEl.addEventListener(
-      'materialtextureloaded',
-      bind(this.onMaterialTextureLoaded, this)
-    );
   },
 
   clearTextureCache: function () {
@@ -42,7 +29,7 @@ module.exports.System = registerSystem('material', {
   /**
    * Determine whether `src` is a image or video. Then try to load the asset, then call back.
    *
-   * @param {string, or element} src - Texture URL or element.
+   * @param {string} src - Texture URL.
    * @param {string} data - Relevant texture data used for caching.
    * @param {function} cb - Callback to pass texture to.
    */
@@ -52,15 +39,6 @@ module.exports.System = registerSystem('material', {
     // Canvas.
     if (src.tagName === 'CANVAS') {
       this.loadCanvas(src, data, cb);
-      return;
-    }
-
-    // Video element.
-    if (src.tagName === 'VIDEO') {
-      if (!src.src && !src.srcObject && !src.childElementCount) {
-        warn('Video element was defined with neither `source` elements nor `src` / `srcObject` attributes.');
-      }
-      this.loadVideo(src, data, cb);
       return;
     }
 
@@ -76,8 +54,9 @@ module.exports.System = registerSystem('material', {
    * @param {object} data - Texture data.
    * @param {function} cb - Callback to pass texture to.
    */
-  loadImage: function (src, data, handleImageTextureLoaded) {
+  loadImage: function (src, data, cb) {
     var hash = this.hash(data);
+    var handleImageTextureLoaded = cb;
     var textureCache = this.textureCache;
 
     // Texture already being loaded or already loaded. Wait on promise.
@@ -99,10 +78,10 @@ module.exports.System = registerSystem('material', {
    * @param {function} cb - Callback to pass texture to.
    */
   loadCanvas: function (src, data, cb) {
-    var texture;
-    texture = new THREE.CanvasTexture(src);
-    setTextureProperties(texture, data);
-    cb(texture);
+    // Hack readyState and HAVE_CURRENT_DATA on canvas to work with THREE.VideoTexture
+    src.readyState = 2;
+    src.HAVE_CURRENT_DATA = 2;
+    this.loadVideo(src, data, cb);
   },
 
     /**
@@ -155,33 +134,13 @@ module.exports.System = registerSystem('material', {
     texture.minFilter = THREE.LinearFilter;
     setTextureProperties(texture, data);
 
-    // If iOS and video is HLS, do some hacks.
-    if (this.sceneEl.isIOS &&
-        isHLS(videoEl.src || videoEl.getAttribute('src'),
-              videoEl.type || videoEl.getAttribute('type'))) {
-      // Actually BGRA. Tell shader to correct later.
-      texture.format = THREE.RGBAFormat;
-      texture.needsCorrectionBGRA = true;
-      // Apparently needed for HLS. Tell shader to correct later.
-      texture.flipY = false;
-      texture.needsCorrectionFlipY = true;
-    }
-
     // Cache as promise to be consistent with image texture caching.
     videoTextureResult = {texture: texture, videoEl: videoEl};
     textureCache[hash] = Promise.resolve(videoTextureResult);
     handleVideoTextureLoaded(videoTextureResult);
   },
 
-  /**
-   * Create a hash of the material properties for texture cache key.
-   */
   hash: function (data) {
-    if (data.src.tagName) {
-      // Since `data.src` can be an element, parse out the string if necessary for the hash.
-      data = utils.extendDeep({}, data);
-      data.src = data.src.src;
-    }
     return JSON.stringify(data);
   },
 
@@ -199,26 +158,12 @@ module.exports.System = registerSystem('material', {
   },
 
   /**
-   * Stop tracking material, and dispose of any textures not being used by
-   * another material component.
+   * Stop tracking material.
    *
    * @param {object} material
    */
   unregisterMaterial: function (material) {
     delete this.materials[material.uuid];
-
-    // If any textures on this material are no longer in use, dispose of them.
-    var textureCounts = this.textureCounts;
-    Object.keys(material)
-      .filter(function (propName) {
-        return material[propName] && material[propName].isTexture;
-      })
-      .forEach(function (mapName) {
-        textureCounts[material[mapName].uuid]--;
-        if (textureCounts[material[mapName].uuid] <= 0) {
-          material[mapName].dispose();
-        }
-      });
   },
 
   /**
@@ -229,21 +174,6 @@ module.exports.System = registerSystem('material', {
     Object.keys(materials).forEach(function (uuid) {
       materials[uuid].needsUpdate = true;
     });
-  },
-
-  /**
-   * Track textures used by material components, so that they can be safely
-   * disposed when no longer in use. Textures must be registered here, and not
-   * through registerMaterial(), because textures may not be attached at the
-   * time the material is registered.
-   *
-   * @param {Event} e
-   */
-  onMaterialTextureLoaded: function (e) {
-    if (!this.textureCounts[e.detail.texture.uuid]) {
-      this.textureCounts[e.detail.texture.uuid] = 0;
-    }
-    this.textureCounts[e.detail.texture.uuid]++;
   }
 });
 
@@ -303,7 +233,7 @@ function loadImageTexture (src, data) {
       return;
     }
 
-    // Request and load texture from src string. THREE will create underlying element.
+    // Load texture from src string. THREE will create underlying element.
     // Use THREE.TextureLoader (src, onLoad, onProgress, onError) to load texture.
     TextureLoader.load(
       src,
@@ -325,27 +255,17 @@ function loadImageTexture (src, data) {
 function setTextureProperties (texture, data) {
   var offset = data.offset || {x: 0, y: 0};
   var repeat = data.repeat || {x: 1, y: 1};
-  var npot = data.npot || false;
-
-  // To support NPOT textures, wrap must be ClampToEdge (not Repeat),
-  // and filters must not use mipmaps (i.e. Nearest or Linear).
-  if (npot) {
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
-  }
 
   // Don't bother setting repeat if it is 1/1. Power-of-two is required to repeat.
-  if (repeat.x !== 1 || repeat.y !== 1) {
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(repeat.x, repeat.y);
-  }
+  if (repeat.x === 1 && repeat.y === 1) { return; }
+
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeat.x, repeat.y);
+
   // Don't bother setting offset if it is 0/0.
-  if (offset.x !== 0 || offset.y !== 0) {
-    texture.offset.set(offset.x, offset.y);
-  }
+  if (offset.x === 0 || offset.y === 0) { return; }
+  texture.offset.set(offset.x, offset.y);
 }
 
 /**
@@ -360,9 +280,7 @@ function createVideoEl (src, width, height) {
   var videoEl = document.createElement('video');
   videoEl.width = width;
   videoEl.height = height;
-  // Support inline videos for iOS webviews.
-  videoEl.setAttribute('playsinline', '');
-  videoEl.setAttribute('webkit-playsinline', '');
+  videoEl.setAttribute('webkit-playsinline', '');  // Support inline videos for iOS webviews.
   videoEl.autoplay = true;
   videoEl.loop = true;
   videoEl.crossOrigin = 'anonymous';
@@ -387,8 +305,8 @@ function createVideoEl (src, width, height) {
  * @returns {Element} Video element with the correct properties updated.
  */
 function fixVideoAttributes (videoEl) {
-  videoEl.autoplay = videoEl.hasAttribute('autoplay') && videoEl.getAttribute('autoplay') !== 'false';
-  videoEl.controls = videoEl.hasAttribute('controls') && videoEl.getAttribute('controls') !== 'false';
+  videoEl.autoplay = videoEl.getAttribute('autoplay') !== 'false';
+  videoEl.controls = videoEl.getAttribute('controls') !== 'false';
   if (videoEl.getAttribute('loop') === 'false') {
     videoEl.removeAttribute('loop');
   }
@@ -397,7 +315,6 @@ function fixVideoAttributes (videoEl) {
   }
   videoEl.crossOrigin = videoEl.crossOrigin || 'anonymous';
   // To support inline videos in iOS webviews.
-  videoEl.setAttribute('playsinline', '');
   videoEl.setAttribute('webkit-playsinline', '');
   return videoEl;
 }

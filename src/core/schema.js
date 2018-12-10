@@ -1,10 +1,5 @@
-var utils = require('../utils/');
-var PropertyTypes = require('./propertyTypes');
-
-var debug = utils.debug;
-var isValidDefaultValue = PropertyTypes.isValidDefaultValue;
-var propertyTypes = PropertyTypes.propertyTypes;
-
+var debug = require('../utils/debug');
+var propertyTypes = require('./propertyTypes').propertyTypes;
 var warn = debug('core:schema:warn');
 
 /**
@@ -25,40 +20,32 @@ module.exports.isSingleProperty = isSingleProperty;
  * Build step to schema to use `type` to inject default value, parser, and stringifier.
  *
  * @param {object} schema
- * @param {string} componentName
  * @returns {object} Schema.
  */
-module.exports.process = function (schema, componentName) {
-  var propName;
-
+module.exports.process = function (schema) {
   // For single property schema, run processPropDefinition over the whole schema.
   if (isSingleProperty(schema)) {
-    return processPropertyDefinition(schema, componentName);
+    return processPropertyDefinition(schema);
   }
 
   // For multi-property schema, run processPropDefinition over each property definition.
-  for (propName in schema) {
-    schema[propName] = processPropertyDefinition(schema[propName], componentName);
-  }
+  Object.keys(schema).forEach(function (propName) {
+    schema[propName] = processPropertyDefinition(schema[propName]);
+  });
   return schema;
 };
 
 /**
  * Inject default value, parser, stringifier for single property.
- *
- * @param {object} propDefinition
- * @param {string} componentName
  */
-function processPropertyDefinition (propDefinition, componentName) {
+function processPropertyDefinition (propDefinition) {
   var defaultVal = propDefinition.default;
-  var isCustomType;
   var propType;
   var typeName = propDefinition.type;
 
   // Type inference.
   if (!propDefinition.type) {
-    if (defaultVal !== undefined &&
-        (typeof defaultVal === 'boolean' || typeof defaultVal === 'number')) {
+    if (defaultVal !== undefined && ['boolean', 'number'].indexOf(typeof defaultVal) !== -1) {
       // Type inference.
       typeName = typeof defaultVal;
     } else if (Array.isArray(defaultVal)) {
@@ -75,26 +62,18 @@ function processPropertyDefinition (propDefinition, componentName) {
 
   propType = propertyTypes[typeName];
   if (!propType) {
-    warn('Unknown property type for component `' + componentName + '`: ' + typeName);
+    warn('Unknown property type: ' + typeName);
   }
 
   // Fill in parse and stringify using property types.
-  isCustomType = !!propDefinition.parse;
   propDefinition.parse = propDefinition.parse || propType.parse;
   propDefinition.stringify = propDefinition.stringify || propType.stringify;
 
   // Fill in type name.
   propDefinition.type = typeName;
 
-  // Check that default value exists.
-  if ('default' in propDefinition) {
-    // Check that default values are valid.
-    if (!isCustomType && !isValidDefaultValue(typeName, defaultVal)) {
-      warn('Default value `' + defaultVal + '` does not match type `' + typeName +
-           '` in component `' + componentName + '`');
-    }
-  } else {
-    // Fill in default value.
+  // Fill in default value.
+  if (!('default' in propDefinition)) {
     propDefinition.default = propType.default;
   }
 
@@ -112,42 +91,29 @@ module.exports.processPropertyDefinition = processPropertyDefinition;
  * @param {string } componentName - Name of the component, used for the property warning.
  * @param {boolean} silent - Suppress warning messages.
  */
-module.exports.parseProperties = (function () {
-  var propNames = [];
+module.exports.parseProperties = function (propData, schema, getPartialData, componentName,
+                                           silent) {
+  var propNames = Object.keys(getPartialData ? propData : schema);
 
-  return function (propData, schema, getPartialData, componentName, silent) {
-    var i;
-    var propName;
-    var propDefinition;
-    var propValue;
+  if (propData === null || typeof propData !== 'object') { return propData; }
 
-    propNames.length = 0;
-    for (propName in (getPartialData ? propData : schema)) {
-      if (getPartialData && propData[propName] === undefined) { continue; }
-      propNames.push(propName);
+  // Validation errors.
+  Object.keys(propData).forEach(function (propName) {
+    if (!schema[propName] && !silent) {
+      warn('Unknown property `' + propName +
+           '` for component/system `' + componentName + '`.');
     }
+  });
 
-    if (propData === null || typeof propData !== 'object') { return propData; }
+  propNames.forEach(function parse (propName) {
+    var propDefinition = schema[propName];
+    var propValue = propData[propName];
+    if (!(schema[propName])) { return; }
+    propData[propName] = parseProperty(propValue, propDefinition);
+  });
 
-    // Validation errors.
-    for (propName in propData) {
-      if (propData[propName] !== undefined && !schema[propName] && !silent) {
-        warn('Unknown property `' + propName +
-             '` for component/system `' + componentName + '`.');
-      }
-    }
-
-    for (i = 0; i < propNames.length; i++) {
-      propName = propNames[i];
-      propDefinition = schema[propName];
-      propValue = propData[propName];
-      if (!(schema[propName])) { return; }
-      propData[propName] = parseProperty(propValue, propDefinition);
-    }
-
-    return propData;
-  };
-})();
+  return propData;
+};
 
 /**
  * Deserialize a single property.
@@ -156,7 +122,6 @@ function parseProperty (value, propDefinition) {
   // Use default value if value is falsy.
   if (value === undefined || value === null || value === '') {
     value = propDefinition.default;
-    if (Array.isArray(value)) { value = value.slice(); }
   }
   // Invoke property type parser.
   return propDefinition.parse(value, propDefinition.default);
@@ -167,22 +132,17 @@ module.exports.parseProperty = parseProperty;
  * Serialize a group of properties.
  */
 module.exports.stringifyProperties = function (propData, schema) {
-  var propName;
-  var propDefinition;
-  var propValue;
   var stringifiedData = {};
-  var value;
-
-  for (propName in propData) {
-    propDefinition = schema[propName];
-    propValue = propData[propName];
-    value = propValue;
+  Object.keys(propData).forEach(function (propName) {
+    var propDefinition = schema[propName];
+    var propValue = propData[propName];
+    var value = propValue;
     if (typeof value === 'object') {
       value = stringifyProperty(propValue, propDefinition);
       if (!propDefinition) { warn('Unknown component property: ' + propName); }
     }
     stringifiedData[propName] = value;
-  }
+  });
   return stringifiedData;
 };
 
@@ -190,13 +150,9 @@ module.exports.stringifyProperties = function (propData, schema) {
  * Serialize a single property.
  */
 function stringifyProperty (value, propDefinition) {
-  // This function stringifies but it's used in a context where
-  // there's always second stringification pass. By returning the original
-  // value when it's not an object we save one unnecessary call
-  // to JSON.stringify.
   if (typeof value !== 'object') { return value; }
   // if there's no schema for the property we use standar JSON stringify
-  if (!propDefinition || value === null) { return JSON.stringify(value); }
+  if (!propDefinition) { return JSON.stringify(value); }
   return propDefinition.stringify(value);
 }
 module.exports.stringifyProperty = stringifyProperty;

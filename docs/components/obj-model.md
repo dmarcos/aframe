@@ -3,10 +3,6 @@ title: obj-model
 type: components
 layout: docs
 parent_section: components
-source_code: src/components/obj-model.js
-examples:
- - title: Modifying Material of Model
-   src: https://glitch.com/edit/#!/aframe-modify-model-material?path=index.html:1:0
 ---
 
 The obj-model component loads a 3D model and material using a
@@ -50,7 +46,7 @@ We can also load assets by specifying the path directly within `url()`. Note thi
 
 ## Troubleshooting
 
-See [Introduction → 3D Models → Troubleshooting](../introduction/models.md#troubleshooting).
+If you don't see your model, try scaling it down. OBJ models generally have extremely large scales in comparison to A-Frame's scale.
 
 ## Additional Resources
 
@@ -64,4 +60,4 @@ We can find and download models on the web to drop into our scenes:
 [clara]: https://clara.io
 [material]: ./material.md
 [sketchup]: https://3dwarehouse.sketchup.com
-[wavefront-wiki]: https://en.wikipedia.org/wiki/Wavefront_.obj_file
+[wavefront-wiki]: https://en.wikipedia.org/wiki/Wavefront

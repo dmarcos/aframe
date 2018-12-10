@@ -1,4 +1,4 @@
-/* global AFRAME, assert, suite, test, THREE */
+/* global AFRAME, assert, suite, test */
 var helpers = require('../../helpers');
 var registerPrimitive = require('extras/primitives/primitives').registerPrimitive;
 var primitives = require('extras/primitives/primitives').primitives;
@@ -118,7 +118,6 @@ suite('registerPrimitive (using innerHTML)', function () {
         assert.equal(this.data.qux, 'qaz');
         // Set by second mapping.
         assert.equal(this.data.quux, 'corge');
-        delete AFRAME.components.test;
         done();
       }
     });
@@ -146,85 +145,6 @@ suite('registerPrimitive (using innerHTML)', function () {
     });
   });
 
-  test('merges mixin for multi-prop component', function (done) {
-    primitiveFactory({
-      defaultComponents: {
-        material: {color: 'blue'}
-      }
-    }, 'mixin="foo"', function postCreation (el) {
-      assert.equal(el.getAttribute('material').color, 'blue');
-      assert.equal(el.getAttribute('material').shader, 'flat');
-      el.setAttribute('material', {side: 'double'});
-      assert.equal(el.getAttribute('material').color, 'blue');
-      assert.equal(el.getAttribute('material').shader, 'flat');
-      assert.equal(el.getAttribute('material').side, 'double');
-      done();
-    }, function preCreation (sceneEl) {
-      helpers.mixinFactory('foo', {material: 'shader: flat'}, sceneEl);
-    });
-  });
-
-  test('applies boolean mixin', function (done) {
-    primitiveFactory({
-      defaultComponents: {
-        visible: {default: true}
-      }
-    }, 'mixin="foo"', function postCreation (el) {
-      assert.equal(el.getAttribute('visible'), false);
-      el.setAttribute('visible', true);
-      assert.equal(el.getAttribute('visible'), true);
-      done();
-    }, function preCreation (sceneEl) {
-      helpers.mixinFactory('foo', {visible: false}, sceneEl);
-    });
-  });
-
-  test('applies single-prop value mixin', function (done) {
-    AFRAME.registerComponent('test', {
-      schema: {default: 'foo'}
-    });
-    primitiveFactory({
-      defaultComponents: {}
-    }, 'mixin="foo"', function postCreation (el) {
-      assert.equal(el.getAttribute('test'), 'bar');
-      done();
-    }, function preCreation (sceneEl) {
-      helpers.mixinFactory('foo', {test: 'bar'}, sceneEl);
-    });
-  });
-
-  test('applies empty mixin', function (done) {
-    AFRAME.registerComponent('test', {
-      schema: {
-        foo: {default: 'foo'},
-        bar: {default: 'bar'}
-      }
-    });
-    primitiveFactory({
-      defaultComponents: {}
-    }, 'mixin="foo"', function postCreation (el) {
-      assert.equal(el.getAttribute('test').foo, 'foo');
-      assert.equal(el.getAttribute('test').bar, 'bar');
-      done();
-    }, function preCreation (sceneEl) {
-      helpers.mixinFactory('foo', {test: ''}, sceneEl);
-    });
-  });
-
-  test('prioritizes mapping over mixin', function (done) {
-    primitiveFactory({
-      defaultComponents: {
-        material: {color: 'blue'}
-      },
-      mappings: {foo: 'material.color'}
-    }, 'mixin="bar" foo="purple"', function postCreation (el) {
-      assert.equal(el.getAttribute('material').color, 'purple');
-      done();
-    }, function preCreation (sceneEl) {
-      helpers.mixinFactory('bar', {material: 'color: orange'}, sceneEl);
-    });
-  });
-
   test('handles mapping to a single-property component', function (done) {
     primitiveFactory({
       mappings: {
@@ -233,137 +153,6 @@ suite('registerPrimitive (using innerHTML)', function () {
     }, 'viz="false"', function postCreation (el) {
       assert.equal(el.getAttribute('visible'), false);
       done();
-    });
-  });
-
-  test('handles initializing with a defined multi-property component', function (done) {
-    AFRAME.registerComponent('test', {
-      schema: {
-        foo: {type: 'string'},
-        bar: {type: 'number'}
-      }
-    });
-    primitiveFactory({}, 'test="foo: qux; bar: 10"', function postCreation (el) {
-      assert.shallowDeepEqual(el.getAttribute('test'), {
-        foo: 'qux',
-        bar: 10
-      });
-      delete AFRAME.components.test;
-      done();
-    });
-  });
-
-  test('handles component with dependency', function (done) {
-    AFRAME.registerComponent('testdep', {
-      schema: {foo: {default: ''}},
-      init: function () {
-        this.el.setObject3D('test', new THREE.Object3D());
-      }
-    });
-
-    AFRAME.registerComponent('test', {
-      dependencies: ['testdep'],
-      schema: {default: ''},
-      init: function () {
-        assert.ok(this.el.getObject3D('test'), 'testdep should have set this object3D.');
-        delete AFRAME.components.test;
-        delete AFRAME.components.testdep;
-        done();
-      }
-    });
-
-    primitiveFactory({
-      defaultComponents: {
-        testdep: {}
-      }
-    }, 'test=""');
-  });
-
-  test('initializes position, rotation, scale', function (done) {
-    primitiveFactory({}, '', function (el) {
-      assert.shallowDeepEqual(el.getAttribute('position'), {x: 0, y: 0, z: 0});
-      assert.shallowDeepEqual(el.getAttribute('rotation'), {x: 0, y: 0, z: 0});
-      assert.shallowDeepEqual(el.getAttribute('scale'), {x: 1, y: 1, z: 1});
-      done();
-    });
-  });
-
-  test('with multiple primitives', function (done) {
-    var count = 0;
-    var el = helpers.entityFactory();
-    var tagName = 'a-test-' + primitiveId++;
-    registerPrimitive(tagName, {
-      defaultComponents: {
-        geometry: {primitive: 'plane'},
-        material: {}
-      },
-      mappings: {color: 'material.color'}
-    });
-    el.addEventListener('child-attached', function (evt) {
-      count++;
-      if (count >= 2) {
-        evt.detail.el.addEventListener('loaded', function () {
-          process.nextTick(function () {
-            assert.equal(el.children[0].getAttribute('material').color, 'red');
-            assert.equal(el.children[1].getAttribute('material').color, 'blue');
-            done();
-          });
-        });
-      }
-    });
-    el.innerHTML = `
-      <${tagName} color="red"></${tagName}>
-      <${tagName} color="blue"></${tagName}>
-    `;
-  });
-
-  test('handles updated mixin', function (done) {
-    primitiveFactory({
-      defaultComponents: {
-        material: {color: 'blue'}
-      },
-      mappings: {foo: 'material.color'}
-    }, 'mixin="bar"', function postCreation (el) {
-      assert.equal(el.getAttribute('material').color, 'orange');
-      document.querySelector('[mixin="bar"]').setAttribute('material', 'color: black');
-      process.nextTick(function () {
-        assert.equal(el.getAttribute('material').color, 'black');
-        el.setAttribute('foo', 'purple');
-        setTimeout(function () {
-          assert.equal(el.getAttribute('material').color, 'purple');
-          done();
-        });
-      });
-    }, function preCreation (sceneEl) {
-      helpers.mixinFactory('bar', {material: 'color: orange'}, sceneEl);
-    });
-  });
-
-  test('resolves mapping collisions', function (done) {
-    primitiveFactory({
-      defaultComponents: {
-        geometry: {primitive: 'box'},
-        material: {},
-        position: '1 2 3'
-      },
-      mappings: {visible: 'material.visible'}
-    }, '', function (el) {
-      assert.equal(el.mappings['material-visible'], 'material.visible');
-      assert.notOk(el.mappings['visible']);
-      done();
-    });
-  });
-
-  test('handles mapping not in default components', function (done) {
-    primitiveFactory({
-      defaultComponents: {},
-      mappings: {color: 'material.color'}
-    }, '', function (el) {
-      el.setAttribute('color', 'blue');
-      setTimeout(() => {
-        assert.equal(el.getAttribute('material').color, 'blue');
-        done();
-      });
     });
   });
 });

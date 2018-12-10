@@ -3,11 +3,16 @@ title: <a-camera>
 type: primitives
 layout: docs
 parent_section: primitives
-source_code: src/extras/primitives/primitives/a-camera.js
 ---
 
-The camera primitive determines what the user sees. We can change the viewport
-by modifying the camera entity's position and rotation.
+The camera primitive places the user somewhere within the scene. It is an
+entity that prescribes the [camera component](../components/) with mappings to
+controls-related components.
+
+[userheight]: ../components/camera.md#vr-behavior
+
+Note that by default, the camera origin will be at `0 1.6 0` in desktop mode
+and `0 0 0` in VR mode. Read about the [`camera.userHeight` property][userheight].
 
 ## Example
 
@@ -26,27 +31,18 @@ by modifying the camera entity's position and rotation.
 | fov                   | camera.fov                     | 80            |
 | look-controls-enabled | look-controls.enabled          | true          |
 | near                  | camera.near                    | 0.5           |
+| user-height           | camera.userHeight              | 1.6           |
 | reverse-mouse-drag    | look-controls.reverseMouseDrag | false         |
 | wasd-controls-enabled | wasd-controls.enabled          | true          |
 
 ## Manually Positioning the Camera
 
-A camera is situated by default at the average height of human eye level (1.6
-meters). When used with controls that receive rotation or position (e.g. from a
-VR device) this position will be overridden.
+To position the camera, set the position on a wrapper `<a-entity>`. Don't set
+the position directly on the camera primitive because controls will quickly
+override the set position:
 
 ```html
-<!-- Place camera at ground level (will be overridden by VR devices) -->
-<a-camera position="0 0 0"></a-camera>
-```
-
-When moving or rotating the camera relative to the scene, use a camera rig.
-By doing so, the camera's height offset can be updated by roomscale devices,
-while still allowing the tracked area to be moved independently around the
-scene.
-
-```html
-<a-entity id="rig" position="25 10 0">
-  <a-camera id="camera"></a-camera>
+<a-entity position="0 0 5">
+  <a-camera></a-camera>
 </a-entity>
 ```

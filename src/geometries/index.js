@@ -11,4 +11,3 @@ require('./sphere.js');
 require('./tetrahedron.js');
 require('./torus.js');
 require('./torusKnot.js');
-require('./triangle.js');

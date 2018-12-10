@@ -1,10 +1,7 @@
-/* global CustomEvent */
+/* global HTMLElement, MutationObserver */
 var registerElement = require('./a-register-element').registerElement;
-var isNode = require('./a-register-element').isNode;
 var utils = require('../utils/');
-
-var warn = utils.debug('core:a-node:warn');
-var error = utils.debug('core:a-node:error');
+var bind = utils.bind;
 
 /**
  * Base class for A-Frame that manages loading of objects.
@@ -13,13 +10,13 @@ var error = utils.debug('core:a-node:error');
  * Nodes emit a `loaded` event when they and their children have initialized.
  */
 module.exports = registerElement('a-node', {
-  prototype: Object.create(window.HTMLElement.prototype, {
+  prototype: Object.create(HTMLElement.prototype, {
     createdCallback: {
       value: function () {
-        this.computedMixinStr = '';
         this.hasLoaded = false;
         this.isNode = true;
         this.mixinEls = [];
+        this.mixinObservers = {};
       },
       writable: window.debug
     },
@@ -27,35 +24,20 @@ module.exports = registerElement('a-node', {
     attachedCallback: {
       value: function () {
         var mixins;
-        this.sceneEl = this.closestScene();
-
-        if (!this.sceneEl) {
-          warn('You are attempting to attach <' + this.tagName + '> outside of an A-Frame ' +
-               'scene. Append this element to `<a-scene>` instead.');
-        }
 
         this.hasLoaded = false;
-        this.emit('nodeready', undefined, false);
+        this.sceneEl = this.closestScene();
+        this.emit('nodeready', {}, false);
 
-        if (!this.isMixin) {
-          mixins = this.getAttribute('mixin');
-          if (mixins) { this.updateMixins(mixins); }
-        }
+        mixins = this.getAttribute('mixin');
+        if (mixins) { this.updateMixins(mixins); }
       },
       writable: window.debug
     },
 
-    /**
-     * Handle mixin.
-     */
     attributeChangedCallback: {
       value: function (attr, oldVal, newVal) {
-        // Ignore if `<a-node>` code is just updating computed mixin in the DOM.
-        if (newVal === this.computedMixinStr) { return; }
-
-        if (attr === 'mixin' && !this.isMixin) {
-          this.updateMixins(newVal, oldVal);
-        }
+        if (attr === 'mixin') { this.updateMixins(newVal, oldVal); }
       }
     },
 
@@ -112,7 +94,8 @@ module.exports = registerElement('a-node', {
         if (this.hasLoaded) { return; }
 
         // Default to waiting for all nodes.
-        childFilter = childFilter || isNode;
+        childFilter = childFilter || function (el) { return el.isNode; };
+
         // Wait for children to load (if any), then load.
         children = this.getChildren();
         childrenLoaded = children.filter(childFilter).map(function (child) {
@@ -125,9 +108,7 @@ module.exports = registerElement('a-node', {
         Promise.all(childrenLoaded).then(function emitLoaded () {
           self.hasLoaded = true;
           if (cb) { cb(); }
-          self.emit('loaded', undefined, false);
-        }).catch(function (err) {
-          error('Failure loading node: ', err);
+          self.emit('loaded', {}, false);
         });
       },
       writable: true
@@ -139,81 +120,24 @@ module.exports = registerElement('a-node', {
       }
     },
 
-    /**
-     * Unregister old mixins and listeners.
-     * Register new mixins and listeners.
-     * Registering means to update `this.mixinEls` with listeners.
-     */
     updateMixins: {
-      value: (function () {
-        var newMixinIdArray = [];
-        var oldMixinIdArray = [];
-        var mixinIds = {};
-
-        return function (newMixins, oldMixins) {
-          var i;
-          var newMixinIds;
-          var oldMixinIds;
-
-          newMixinIdArray.length = 0;
-          oldMixinIdArray.length = 0;
-          newMixinIds = newMixins ? utils.split(newMixins.trim(), /\s+/) : newMixinIdArray;
-          oldMixinIds = oldMixins ? utils.split(oldMixins.trim(), /\s+/) : oldMixinIdArray;
-
-          mixinIds.newMixinIds = newMixinIds;
-          mixinIds.oldMixinIds = oldMixinIds;
-
-          // Unregister old mixins.
-          for (i = 0; i < oldMixinIds.length; i++) {
-            if (newMixinIds.indexOf(oldMixinIds[i]) === -1) {
-              this.unregisterMixin(oldMixinIds[i]);
-            }
-          }
-
-          // Register new mixins.
-          this.computedMixinStr = '';
-          this.mixinEls.length = 0;
-          for (i = 0; i < newMixinIds.length; i++) {
-            this.registerMixin(document.getElementById(newMixinIds[i]));
-          }
-
-          // Update DOM. Keep track of `computedMixinStr` to not recurse back here after
-          // update.
-          if (this.computedMixinStr) {
-            this.computedMixinStr = this.computedMixinStr.trim();
-            window.HTMLElement.prototype.setAttribute.call(this, 'mixin',
-                                                           this.computedMixinStr);
-          }
-
-          return mixinIds;
-        };
-      })()
+      value: function (newMixins, oldMixins) {
+        var newMixinsIds = newMixins.split(' ');
+        var oldMixinsIds = oldMixins ? oldMixins.split(' ') : [];
+        // To determine what listeners will be removed
+        var diff = oldMixinsIds.filter(function (i) { return newMixinsIds.indexOf(i) < 0; });
+        this.mixinEls = [];
+        diff.forEach(bind(this.unregisterMixin, this));
+        newMixinsIds.forEach(bind(this.registerMixin, this));
+      }
     },
 
-    /**
-     * From mixin ID, add mixin element to `mixinEls`.
-     *
-     * @param {Element} mixinEl
-     */
     registerMixin: {
-      value: function (mixinEl) {
-        var compositedMixinIds;
-        var i;
-        var mixin;
-
+      value: function (mixinId) {
+        if (!this.sceneEl) { return; }
+        var mixinEl = this.sceneEl.querySelector('a-mixin#' + mixinId);
         if (!mixinEl) { return; }
-
-        // Register composited mixins (if mixin has mixins).
-        mixin = mixinEl.getAttribute('mixin');
-        if (mixin) {
-          compositedMixinIds = utils.split(mixin.trim(), /\s+/);
-          for (i = 0; i < compositedMixinIds.length; i++) {
-            this.registerMixin(document.getElementById(compositedMixinIds[i]));
-          }
-        }
-
-        // Register mixin.
-        this.computedMixinStr = this.computedMixinStr + ' ' + mixinEl.id;
+        this.attachMixinListener(mixinEl);
         this.mixinEls.push(mixinEl);
       }
     },
@@ -221,15 +145,15 @@ module.exports = registerElement('a-node', {
     setAttribute: {
       value: function (attr, newValue) {
         if (attr === 'mixin') { this.updateMixins(newValue); }
-        window.HTMLElement.prototype.setAttribute.call(this, attr, newValue);
+        HTMLElement.prototype.setAttribute.call(this, attr, newValue);
       }
     },
 
     unregisterMixin: {
       value: function (mixinId) {
-        var i;
         var mixinEls = this.mixinEls;
         var mixinEl;
+        var i;
         for (i = 0; i < mixinEls.length; ++i) {
           mixinEl = mixinEls[i];
           if (mixinId === mixinEl.id) {
@@ -237,33 +161,80 @@ module.exports = registerElement('a-node', {
             break;
           }
         }
+        this.removeMixinListener(mixinId);
+      }
+    },
+
+    removeMixinListener: {
+      value: function (mixinId) {
+        var observer = this.mixinObservers[mixinId];
+        if (!observer) { return; }
+        observer.disconnect();
+        this.mixinObservers[mixinId] = null;
+      }
+    },
+
+    attachMixinListener: {
+      value: function (mixinEl) {
+        var self = this;
+        var mixinId = mixinEl.id;
+        var currentObserver = this.mixinObservers[mixinId];
+        if (!mixinEl) { return; }
+        if (currentObserver) { return; }
+        var observer = new MutationObserver(function (mutations) {
+          var attr = mutations[0].attributeName;
+          self.handleMixinUpdate(attr);
+        });
+        var config = { attributes: true };
+        observer.observe(mixinEl, config);
+        this.mixinObservers[mixinId] = observer;
+      }
+    },
+
+    handleMixinUpdate: {
+      value: function () { /* no-op */ }
+    },
+
+    /**
+     * Emits a DOM event.
+     *
+     * @param {String} name
+     *   Name of event (use a space-delimited string for multiple events).
+     * @param {Object=} [detail={}]
+     *   Custom data to pass as `detail` to the event.
+     * @param {Boolean=} [bubbles=true]
+     *   Whether the event should bubble.
+     */
+    emit: {
+      value: function (name, detail, bubbles) {
+        var self = this;
+        detail = detail || {};
+        if (bubbles === undefined) { bubbles = true; }
+        var data = { bubbles: !!bubbles, detail: detail };
+        return name.split(' ').map(function (eventName) {
+          return utils.fireEvent(self, eventName, data);
+        });
       }
     },
 
     /**
-     * Emit a DOM event.
+     * Returns a closure that emits a DOM event.
      *
-     * @param {string} name - Name of event.
-     * @param {object} [detail={}] - Custom data to pass as `detail` to the event.
-     * @param {boolean} [bubbles=true] - Whether the event should bubble.
-     * @param {object} [extraData] - Extra data to pass to the event, if any.
+     * @param {String} name
+     *   Name of event (use a space-delimited string for multiple events).
+     * @param {Object} detail
+     *   Custom data (optional) to pass as `detail` if the event is to
+     *   be a `CustomEvent`.
+     * @param {Boolean} bubbles
+     *   Whether the event should be bubble.
      */
-    emit: {
-      value: (function () {
-        var data = {};
-
-        return function (name, detail, bubbles, extraData) {
-          if (bubbles === undefined) { bubbles = true; }
-          data.bubbles = !!bubbles;
-          data.detail = detail;
-
-          // If extra data is present, we need to create a new object.
-          if (extraData) { data = utils.extend({}, extraData, data); }
-
-          this.dispatchEvent(new CustomEvent(name, data));
+    emitter: {
+      value: function (name, detail, bubbles) {
+        var self = this;
+        return function () {
+          self.emit(name, detail, bubbles);
         };
-      })(),
-      writable: window.debug
+      }
     }
   })
 });

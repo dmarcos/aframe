@@ -3,10 +3,9 @@ title: <a-cone>
 type: primitives
 layout: docs
 parent_section: primitives
-source_code: src/extras/primitives/primitives/meshPrimitives.js
 ---
 
-The cone primitive creates a cone shape.
+The cone primitive creates a cone shape. It is an entity that prescribes the [geometry](../components/geometry.md) with its geometric primitive set to `cone`.
 
 ## Example
 
@@ -39,7 +38,7 @@ The cone primitive creates a cone shape.
 | displacement-texture-repeat      | material.displacementTextureRepeat     | 1 1           |
 | env-map                          | material.envMap                        | None          |
 | fog                              | material.fog                           | true          |
-| height                           | geometry.height                        | 1             |
+| height                           | material.height                        | 256           |
 | metalness                        | material.metalness                     | 0             |
 | normal-map                       | material.normalMap                     | None          |
 | normal-scale                     | material.normalScale                   | 1 1           |

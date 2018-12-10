@@ -4,11 +4,13 @@
     <meta charset="utf-8">
     <title>Fly Through</title>
     <meta name="description" content="Fly Through - A-Frame">
-    <script src="../../../dist/aframe-master.js"></script>
+    <script src="../../../dist/aframe.js"></script>
   </head>
   <body>
-    <a-scene background="color: #ECECEC">
-      <a-entity animation="property: position; from: 0 0 -10; to: 0 0 10; dur: 10000; easing: linear">
+    <a-scene>
+      <a-entity>
+        <a-animation attribute="position" from="0 0 -10" to="0 0 10" dur="10000"
+                     easing="linear"></a-animation>
         <a-entity>
           <a-camera wasd-controls-enabled="false"></a-camera>
         </a-entity>
@@ -33,6 +35,7 @@
       </a-entity>
 
       <a-image position="0 -1 0" src="shadow2.png" rotation="-90 0 0" scale="6 6 6"></a-image>
+      <a-sky color="#ECECEC"></a-sky>
     </a-scene>
   </body>
 </html>
