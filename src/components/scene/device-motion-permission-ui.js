@@ -1,24 +1,24 @@
-var registerComponent = require("../../core/component").registerComponent;
-var utils = require("../../utils/");
+var registerComponent = require('../../core/component').registerComponent;
+var utils = require('../../utils/');
 var bind = utils.bind;
 
-var constants = require("../../constants/");
+var constants = require('../../constants/');
 
-var DEVICE_PERMISSION_CLASS = "a-device-motion-permission";
-var DEVICE_PERMISSION_BTN_CLASS = "a-device-motion-permission-button";
-var DEVICE_PERMISSION_FULL_CLASS = "a-device-motion-permission-full";
-var DEVICE_PERMISSION_FULL_CENTER_CLASS = "a-device-motion-permission-full-center";
-var DEVICE_PERMISSION_CONTINUE_CLASS = "a-device-motion-permission-continue";
-var DEVICE_PERMISSION_CANCEL_CLASS = "a-device-motion-permission-cancel";
-var BUILT_WITH_AFRAME_CLASS = "a-built-with-aframe";
+var DEVICE_PERMISSION_CLASS = 'a-device-motion-permission';
+var DEVICE_PERMISSION_BTN_CLASS = 'a-device-motion-permission-button';
+var DEVICE_PERMISSION_FULL_CLASS = 'a-device-motion-permission-full';
+var DEVICE_PERMISSION_FULL_CENTER_CLASS = 'a-device-motion-permission-full-center';
+var DEVICE_PERMISSION_CONTINUE_CLASS = 'a-device-motion-permission-continue';
+var DEVICE_PERMISSION_CANCEL_CLASS = 'a-device-motion-permission-cancel';
+var BUILT_WITH_AFRAME_CLASS = 'a-built-with-aframe';
 
 /**
  * UI for enabling device motion permission
  */
-module.exports.Component = registerComponent("device-motion-permission-ui", {
+module.exports.Component = registerComponent('device-motion-permission-ui', {
   schema: {
     enabled: { default: true },
-    deviceMotionEl: { default: "" }
+    deviceMotionEl: { default: '' }
   },
 
   init: function() {
@@ -26,15 +26,15 @@ module.exports.Component = registerComponent("device-motion-permission-ui", {
     this.onDeviceMotionClick = bind(this.onDeviceMotionClick, this);
     this.onOrientationChangeClick = bind(this.onOrientationChangeClick, this);
     this.grantedDeviceMotion = bind(this.grantedDeviceMotion, this);
-    if (typeof window.orientation !== "undefined") {
+    if (typeof window.orientation !== 'undefined') {
       try {
         if (
           DeviceOrientationEvent &&
-          typeof DeviceOrientationEvent.requestPermission === "function"
+          typeof DeviceOrientationEvent.requestPermission === 'function'
         ) {
           DeviceOrientationEvent.requestPermission()
             .then(response => {
-              if (response === "granted") {
+              if (response === 'granted') {
                 this.grantedDeviceMotion();
               }
           }).catch(err=>{
@@ -68,14 +68,14 @@ module.exports.Component = registerComponent("device-motion-permission-ui", {
     try {
       if (
         DeviceOrientationEvent &&
-        typeof DeviceOrientationEvent.requestPermission === "function"
+        typeof DeviceOrientationEvent.requestPermission === 'function'
       ) {
         DeviceOrientationEvent.requestPermission()
           .then(response => {
-            if (response === "granted") {
+            if (response === 'granted') {
               this.grantedDeviceMotion();
             } else {
-              console.log("Device Motion permission not granted.");
+              console.log('Device Motion permission not granted.');
             }
           })
           .catch(console.error);
@@ -84,17 +84,17 @@ module.exports.Component = registerComponent("device-motion-permission-ui", {
       }
     } catch (oops) {
       console.log(
-        "Your device and application combination do not support device motion events."
+        'Your device and application combination do not support device motion events.'
       );
     }
   },
 
   grantedDeviceMotion: function() {
     this.remove();
-    const func = this.el.getAttribute("enableFunc")
-      ? this.el.getAttribute("enableFunc")
-      : "";
-    window.addEventListener("deviceorientation", e => {
+    const func = this.el.getAttribute('enableFunc')
+      ? this.el.getAttribute('enableFunc')
+      : '';
+    window.addEventListener('deviceorientation', e => {
       func();
     });
   }
@@ -113,15 +113,15 @@ function createDeviceMotionButton(onClick) {
   var wrapper;
 
   // Create elements.
-  wrapper = document.createElement("div");
+  wrapper = document.createElement('div');
   wrapper.classList.add(DEVICE_PERMISSION_CLASS);
-  wrapper.setAttribute(constants.AFRAME_INJECTED, "");
-  dmButton = document.createElement("button");
+  wrapper.setAttribute(constants.AFRAME_INJECTED, '');
+  dmButton = document.createElement('button');
   dmButton.className = DEVICE_PERMISSION_BTN_CLASS;
 
   // Insert elements.
   wrapper.appendChild(dmButton);
-  dmButton.addEventListener("click", function(evt) {
+  dmButton.addEventListener('click', function(evt) {
     onClick();
     evt.stopPropagation();
   });
@@ -133,32 +133,32 @@ function createDeviceMotionPermissionWindow(onClick, obj) {
   var cancelBtn, continueBtn;
 
   // Create elements.
-  wrapper = document.createElement("div");
+  wrapper = document.createElement('div');
   wrapper.classList.add(DEVICE_PERMISSION_FULL_CLASS);
-  wrapper.setAttribute(constants.AFRAME_INJECTED, "");
-  innerWrapper = document.createElement("div");
+  wrapper.setAttribute(constants.AFRAME_INJECTED, '');
+  innerWrapper = document.createElement('div');
   innerWrapper.className = DEVICE_PERMISSION_FULL_CENTER_CLASS;
-  innerWrapper.setAttribute(constants.AFRAME_INJECTED, "");
-  cancelBtn = document.createElement("div");
+  innerWrapper.setAttribute(constants.AFRAME_INJECTED, '');
+  cancelBtn = document.createElement('div');
   cancelBtn.className = DEVICE_PERMISSION_CANCEL_CLASS;
-  cancelBtn.setAttribute(constants.AFRAME_INJECTED, "");
-  continueBtn = document.createElement("div");
+  cancelBtn.setAttribute(constants.AFRAME_INJECTED, '');
+  continueBtn = document.createElement('div');
   continueBtn.className = DEVICE_PERMISSION_CONTINUE_CLASS;
-  continueBtn.setAttribute(constants.AFRAME_INJECTED, "");
-  aframeBuilt = document.createElement("div");
+  continueBtn.setAttribute(constants.AFRAME_INJECTED, '');
+  aframeBuilt = document.createElement('div');
   aframeBuilt.className = BUILT_WITH_AFRAME_CLASS;
-  aframeBuilt.setAttribute(constants.AFRAME_INJECTED, "");
+  aframeBuilt.setAttribute(constants.AFRAME_INJECTED, '');
   // Insert elements.
   innerWrapper.appendChild(cancelBtn);
   innerWrapper.appendChild(continueBtn);
   innerWrapper.appendChild(aframeBuilt);
   wrapper.appendChild(innerWrapper);
-  continueBtn.addEventListener("click", function(evt) {
+  continueBtn.addEventListener('click', function(evt) {
     onClick();
     obj.remove();
     evt.stopPropagation();
   });
-  cancelBtn.addEventListener("click", function(evt) {
+  cancelBtn.addEventListener('click', function(evt) {
     obj.remove();
     evt.stopPropagation();
   });
