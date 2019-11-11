@@ -8,8 +8,9 @@ var DEVICE_PERMISSION_CLASS = "a-device-motion-permission";
 var DEVICE_PERMISSION_BTN_CLASS = "a-device-motion-permission-button";
 var DEVICE_PERMISSION_FULL_CLASS = "a-device-motion-permission-full";
 var DEVICE_PERMISSION_FULL_CENTER_CLASS = "a-device-motion-permission-full-center";
-var DEVICE_PERMISSION_CANCEL_CLASS = "a-device-motion-permission-cancel";
 var DEVICE_PERMISSION_CONTINUE_CLASS = "a-device-motion-permission-continue";
+var DEVICE_PERMISSION_CANCEL_CLASS = "a-device-motion-permission-cancel";
+var BUILT_WITH_AFRAME_CLASS = "a-built-with-aframe";
 
 /**
  * UI for enabling device motion permission
@@ -128,7 +129,7 @@ function createDeviceMotionButton(onClick) {
 }
 
 function createDeviceMotionPermissionWindow(onClick, obj) {
-  var wrapper, innerWrapper;
+  var wrapper, innerWrapper, aframeBuilt;
   var cancelBtn, continueBtn;
 
   // Create elements.
@@ -144,9 +145,13 @@ function createDeviceMotionPermissionWindow(onClick, obj) {
   continueBtn = document.createElement("div");
   continueBtn.className = DEVICE_PERMISSION_CONTINUE_CLASS;
   continueBtn.setAttribute(constants.AFRAME_INJECTED, "");
+  aframeBuilt = document.createElement("div");
+  aframeBuilt.className = BUILT_WITH_AFRAME_CLASS;
+  aframeBuilt.setAttribute(constants.AFRAME_INJECTED, "");
   // Insert elements.
   innerWrapper.appendChild(cancelBtn);
   innerWrapper.appendChild(continueBtn);
+  innerWrapper.appendChild(aframeBuilt);
   wrapper.appendChild(innerWrapper);
   continueBtn.addEventListener("click", function(evt) {
     onClick();
