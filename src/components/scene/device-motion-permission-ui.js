@@ -1,3 +1,4 @@
+/* global DeviceOrientationEvent */
 var registerComponent = require('../../core/component').registerComponent;
 var utils = require('../../utils/');
 var bind = utils.bind;
@@ -6,17 +7,16 @@ var constants = require('../../constants/');
 
 var DEVICE_PERMISSION_FULL_CLASS = 'a-device-motion-permission-full';
 var DEVICE_PERMISSION_FULL_CENTER_CLASS = 'a-device-motion-permission-full-center';
-var DEVICE_PERMISSION_CONTINUE_CLASS = 'a-device-motion-permission-continue';
 var DEVICE_PERMISSION_CANCEL_CLASS = 'a-device-motion-permission-cancel';
-var BUILT_WITH_AFRAME_CLASS = 'a-built-with-aframe';
+var DEVICE_PERMISSION_CONTINUE_CLASS = 'a-device-motion-permission-continue';
 
 /**
  * UI for enabling device motion permission
  */
 module.exports.Component = registerComponent('device-motion-permission-ui', {
   schema: {
-    enabled: { default: true },
-    deviceMotionEl: { default: '' }
+    enabled: {default: true},
+    deviceMotionEl: {default: ''}
   },
 
   init: function () {
@@ -24,36 +24,9 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
     this.onDeviceMotionClick = bind(this.onDeviceMotionClick, this);
     this.onOrientationChangeClick = bind(this.onOrientationChangeClick, this);
     this.grantedDeviceMotion = bind(this.grantedDeviceMotion, this);
-    if (typeof window.orientation !== 'undefined') {
-      try {
-        /*eslint-disable */
-        if (
-          DeviceOrientationEvent &&
-          typeof DeviceOrientationEvent.requestPermission === 'function'
-        ) {
-          DeviceOrientationEvent.requestPermission()
-            .then(response => {
-              if (response === 'granted') {
-                this.grantedDeviceMotion();
-              }
-            })
-            /* eslint-enable */
-            .catch(err => {
-              console.log(err);
-              this.deviceMotionEl = createDeviceMotionPermissionWindow(
-                this.onDeviceMotionClick,
-                this
-              );
-              this.el.appendChild(this.deviceMotionEl);
-            });
-        } else {
-          this.grantedDeviceMotion();
-        }
-      } catch (oops) {
-        this.grantedDeviceMotion();
-      }
-    } else {
-      this.remove();
+    if (DeviceOrientationEvent && DeviceOrientationEvent.requestPermission) {
+      this.deviceMotionEl = createDeviceMotionPermissionDialog(this.onDeviceMotionClick, this);
+      this.el.appendChild(this.deviceMotionEl);
     }
   },
 
@@ -67,30 +40,13 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
    * Enable device motion permission when clicked.
    */
   onDeviceMotionClick: function () {
-    try {
-      /*eslint-disable */
-      if (
-        DeviceOrientationEvent &&
-        typeof DeviceOrientationEvent.requestPermission === 'function'
-      ) {
-        DeviceOrientationEvent.requestPermission()
-          .then(response => {
-            if (response === 'granted') {
-              this.grantedDeviceMotion();
-            } else {
-              console.log('Device Motion permission not granted.');
-            }
-          })
-          .catch(console.error);
-          /* eslint-enable */
-      } else {
+    DeviceOrientationEvent.requestPermission().then(response => {
+      if (response === 'granted') {
         this.grantedDeviceMotion();
+      } else {
+        console.log('Device Motion permission not granted.');
       }
-    } catch (oops) {
-      console.log(
-        'Your device and application combination do not support device motion events.'
-      );
-    }
+    }).catch(console.error);
   },
 
   grantedDeviceMotion: function () {
@@ -105,17 +61,16 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
 });
 
 /**
- * Create a button that when clicked will provide device motion permission.
+ * Create a modal dialog to accept or decline acccess to DeviceMotionEvents
  *
- * Structure: <div><button></div>
- *
- * @param {function} onClick - click event handler
+ * @param {function} onAcceptClicked - accept button click event handler
  * @returns {Element} Wrapper <div>.
  */
-
-function createDeviceMotionPermissionWindow (onClick, obj) {
-  var wrapper, innerWrapper, aframeBuilt;
-  var cancelBtn, continueBtn;
+function createDeviceMotionPermissionDialog (onAcceptClicked, component) {
+  var acceptButton;
+  var cancelButton;
+  var innerWrapper;
+  var wrapper;
 
   // Create elements.
   wrapper = document.createElement('div');
@@ -124,27 +79,23 @@ function createDeviceMotionPermissionWindow (onClick, obj) {
   innerWrapper = document.createElement('div');
   innerWrapper.className = DEVICE_PERMISSION_FULL_CENTER_CLASS;
   innerWrapper.setAttribute(constants.AFRAME_INJECTED, '');
-  cancelBtn = document.createElement('div');
-  cancelBtn.className = DEVICE_PERMISSION_CANCEL_CLASS;
-  cancelBtn.setAttribute(constants.AFRAME_INJECTED, '');
-  continueBtn = document.createElement('div');
-  continueBtn.className = DEVICE_PERMISSION_CONTINUE_CLASS;
-  continueBtn.setAttribute(constants.AFRAME_INJECTED, '');
-  aframeBuilt = document.createElement('div');
-  aframeBuilt.className = BUILT_WITH_AFRAME_CLASS;
-  aframeBuilt.setAttribute(constants.AFRAME_INJECTED, '');
+  cancelButton = document.createElement('div');
+  cancelButton.className = DEVICE_PERMISSION_CANCEL_CLASS;
+  cancelButton.setAttribute(constants.AFRAME_INJECTED, '');
+  acceptButton = document.createElement('div');
+  acceptButton.className = DEVICE_PERMISSION_CONTINUE_CLASS;
+  acceptButton.setAttribute(constants.AFRAME_INJECTED, '');
   // Insert elements.
-  innerWrapper.appendChild(cancelBtn);
-  innerWrapper.appendChild(continueBtn);
-  innerWrapper.appendChild(aframeBuilt);
+  innerWrapper.appendChild(cancelButton);
+  innerWrapper.appendChild(acceptButton);
   wrapper.appendChild(innerWrapper);
-  continueBtn.addEventListener('click', function (evt) {
-    onClick();
-    obj.remove();
+  acceptButton.addEventListener('click', function (evt) {
+    onAcceptClicked();
+    component.remove();
     evt.stopPropagation();
   });
-  cancelBtn.addEventListener('click', function (evt) {
-    obj.remove();
+  cancelButton.addEventListener('click', function (evt) {
+    component.remove();
     evt.stopPropagation();
   });
   return wrapper;
