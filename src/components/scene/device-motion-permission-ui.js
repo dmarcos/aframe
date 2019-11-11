@@ -4,8 +4,6 @@ var bind = utils.bind;
 
 var constants = require('../../constants/');
 
-var DEVICE_PERMISSION_CLASS = 'a-device-motion-permission';
-var DEVICE_PERMISSION_BTN_CLASS = 'a-device-motion-permission-button';
 var DEVICE_PERMISSION_FULL_CLASS = 'a-device-motion-permission-full';
 var DEVICE_PERMISSION_FULL_CENTER_CLASS = 'a-device-motion-permission-full-center';
 var DEVICE_PERMISSION_CONTINUE_CLASS = 'a-device-motion-permission-continue';
@@ -21,13 +19,14 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
     deviceMotionEl: { default: '' }
   },
 
-  init: function() {
+  init: function () {
     this.deviceMotionEl = null;
     this.onDeviceMotionClick = bind(this.onDeviceMotionClick, this);
     this.onOrientationChangeClick = bind(this.onOrientationChangeClick, this);
     this.grantedDeviceMotion = bind(this.grantedDeviceMotion, this);
     if (typeof window.orientation !== 'undefined') {
       try {
+        /*eslint-disable */
         if (
           DeviceOrientationEvent &&
           typeof DeviceOrientationEvent.requestPermission === 'function'
@@ -37,13 +36,16 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
               if (response === 'granted') {
                 this.grantedDeviceMotion();
               }
-          }).catch(err=>{
-            this.deviceMotionEl = createDeviceMotionPermissionWindow(
-              this.onDeviceMotionClick,
-              this
-            );
-            this.el.appendChild(this.deviceMotionEl);
-          });
+            })
+            /* eslint-enable */
+            .catch(err => {
+              console.log(err);
+              this.deviceMotionEl = createDeviceMotionPermissionWindow(
+                this.onDeviceMotionClick,
+                this
+              );
+              this.el.appendChild(this.deviceMotionEl);
+            });
         } else {
           this.grantedDeviceMotion();
         }
@@ -55,7 +57,7 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
     }
   },
 
-  remove: function() {
+  remove: function () {
     if (this.deviceMotionEl) {
       this.el.removeChild(this.deviceMotionEl);
     }
@@ -64,8 +66,9 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
   /**
    * Enable device motion permission when clicked.
    */
-  onDeviceMotionClick: function() {
+  onDeviceMotionClick: function () {
     try {
+      /*eslint-disable */
       if (
         DeviceOrientationEvent &&
         typeof DeviceOrientationEvent.requestPermission === 'function'
@@ -79,8 +82,9 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
             }
           })
           .catch(console.error);
+          /* eslint-enable */
       } else {
-        this.grantedDeviceMotion(func);
+        this.grantedDeviceMotion();
       }
     } catch (oops) {
       console.log(
@@ -89,7 +93,7 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
     }
   },
 
-  grantedDeviceMotion: function() {
+  grantedDeviceMotion: function () {
     this.remove();
     const func = this.el.getAttribute('enableFunc')
       ? this.el.getAttribute('enableFunc')
@@ -108,27 +112,8 @@ module.exports.Component = registerComponent('device-motion-permission-ui', {
  * @param {function} onClick - click event handler
  * @returns {Element} Wrapper <div>.
  */
-function createDeviceMotionButton(onClick) {
-  var dmButton;
-  var wrapper;
 
-  // Create elements.
-  wrapper = document.createElement('div');
-  wrapper.classList.add(DEVICE_PERMISSION_CLASS);
-  wrapper.setAttribute(constants.AFRAME_INJECTED, '');
-  dmButton = document.createElement('button');
-  dmButton.className = DEVICE_PERMISSION_BTN_CLASS;
-
-  // Insert elements.
-  wrapper.appendChild(dmButton);
-  dmButton.addEventListener('click', function(evt) {
-    onClick();
-    evt.stopPropagation();
-  });
-  return wrapper;
-}
-
-function createDeviceMotionPermissionWindow(onClick, obj) {
+function createDeviceMotionPermissionWindow (onClick, obj) {
   var wrapper, innerWrapper, aframeBuilt;
   var cancelBtn, continueBtn;
 
@@ -153,12 +138,12 @@ function createDeviceMotionPermissionWindow(onClick, obj) {
   innerWrapper.appendChild(continueBtn);
   innerWrapper.appendChild(aframeBuilt);
   wrapper.appendChild(innerWrapper);
-  continueBtn.addEventListener('click', function(evt) {
+  continueBtn.addEventListener('click', function (evt) {
     onClick();
     obj.remove();
     evt.stopPropagation();
   });
-  cancelBtn.addEventListener('click', function(evt) {
+  cancelBtn.addEventListener('click', function (evt) {
     obj.remove();
     evt.stopPropagation();
   });
