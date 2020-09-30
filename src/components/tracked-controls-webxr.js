@@ -55,15 +55,11 @@ module.exports.Component = registerComponent('tracked-controls-webxr', {
   addSessionEventListeners: function () {
     var sceneEl = this.el.sceneEl;
     if (!sceneEl.xrSession) { return; }
-    sceneEl.xrSession.addEventListener('selectstart', this.emitButtonDownEvent);
-    sceneEl.xrSession.addEventListener('selectend', this.emitButtonUpEvent);
   },
 
   removeSessionEventListeners: function () {
     var sceneEl = this.el.sceneEl;
     if (!sceneEl.xrSession) { return; }
-    sceneEl.xrSession.removeEventListener('selectstart', this.emitButtonDownEvent);
-    sceneEl.xrSession.removeEventListener('selectend', this.emitButtonUpEvent);
   },
 
   isControllerPresent: function (evt) {
