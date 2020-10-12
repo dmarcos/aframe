@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Render the Metaverse • A-Frame</title>
+    <meta name="description" content="Render the Metaverse • A-Frame">
+    <script src="../../../dist/aframe-master.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
+    <script src="cubemap-switcher.js"></script>
+  </head>
+  <body>
+    <a-scene environment>
+      <a-assets timeout="100000">
+       <img id="realizationcubemap" crossOrigin="anonymous" src="https://vr1.otoycdn.net/vr/pano/23252_C59E51B1-932C-4273-960F-FC7208C0A80E_pano.png">
+       <img id="panel" crossOrigin="anonymous" src="panel.png">
+      </a-assets>
+      <a-entity
+        camera
+        look-controls="magicWindowTrackingEnabled: false"
+        position="0 1.6 0"></a-entity>
+      <a-entity
+        cubemap-switcher
+        layer="src: #realizationcubemap; type: stereocubemap;"
+        position="0 1.8 -1.5"></a-entity>
+      <a-entity
+        rotation="0 0 0"
+        position="0 1.6 -0.75"
+        material="shader: flat; src: #panel"
+        geometry="primitive: plane; width: 1.920; height: 1.038"></a-entity>
+      <a-entity id="leftHand" oculus-touch-controls="hand: left"></a-entity>
+      <a-entity id="rightHand" oculus-touch-controls="hand: right"></a-entity>
+    </a-scene>
+  </body>
+</html>
