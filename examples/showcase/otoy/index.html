@@ -6,13 +6,16 @@
     <meta name="description" content="Render the Metaverse • A-Frame">
     <script src="../../../dist/aframe-master.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
+    <script src="BasisTextureLoader.js"></script>
     <script src="cubemap-switcher.js"></script>
   </head>
   <body>
     <a-scene environment>
       <a-assets timeout="100000">
-       <img id="realizationcubemap" crossOrigin="anonymous" src="https://vr1.otoycdn.net/vr/pano/23252_C59E51B1-932C-4273-960F-FC7208C0A80E_pano.png">
+      <!--  <img id="realizationcubemap" crossOrigin="anonymous" src="https://vr1.otoycdn.net/vr/pano/23252_C59E51B1-932C-4273-960F-FC7208C0A80E_pano.png"> -->
        <img id="panel" crossOrigin="anonymous" src="panel.png">
+       <!-- <a-asset-item id="astcPano" response-type="arraybuffer" src="bricks.basis"></a-asset-item> -->
+       <img id="astcPano" crossOrigin="anonymous" src="bricks.png">
       </a-assets>
       <a-entity
         camera
@@ -20,7 +23,7 @@
         position="0 1.6 0"></a-entity>
       <a-entity
         cubemap-switcher
-        layer="src: #realizationcubemap; type: stereocubemap;"
+        layer="src: #astcPano; type: stereocubemap; astcCompression: true"
         position="0 1.8 -1.5"></a-entity>
       <a-entity
         rotation="0 0 0"

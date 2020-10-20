@@ -5,9 +5,10 @@ var warn = utils.debug('components:layer:warn');
 
 module.exports.Component = registerComponent('layer', {
   schema: {
-    src: {type: 'map'},
+    src: {type: 'model'},
     type: {default: 'stereocubemap', oneOf: ['quad', 'monocubemap', 'stereocubemap']},
-    rotateCubemap: {default: false}
+    rotateCubemap: {default: false},
+    astcCompression: {default: false}
   },
 
   init: function () {
@@ -60,7 +61,7 @@ module.exports.Component = registerComponent('layer', {
 
     this.visibilityChanged = false;
     if (!this.layer) { return; }
-    if (!src.complete) {
+    if (!src.complete && !this.data.astcCompression) {
       this.pendingCubeMapUpdate = true;
     } else {
       this.pendingCubeMapUpdate = false;
@@ -168,7 +169,152 @@ module.exports.Component = registerComponent('layer', {
     return cubefaceTextures;
   },
 
+  loadCubeMapImageNew: function (layerColorTexture, src, faceOffset) {
+    var loader = new THREE.BasisTextureLoader();
+    var gl = this.el.sceneEl.renderer.getContext();
+    var extension = gl.getExtension('WEBGL_compressed_texture_astc');
+    loader.setTranscoderPath('./');
+    loader.detectSupport(this.el.sceneEl.renderer);
+    loader.load(src, function (evt) {
+      var buffer = evt.mipmaps[0];
+      var level = 0;
+      var width = buffer.width;
+      var height = buffer.height;
+      var internalFormat = extension.COMPRESSED_RGBA_ASTC_4x4_KHR;
+
+      // dont flip the pixels as we load them into the texture buffer.
+      // TEXTURE_CUBE_MAP expects the Y to be flipped for the faces and it already
+      // is flipped in our texture image.
+      // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, layerColorTexture);
+
+      gl.compressedTexImage2D(
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_X, level,
+        internalFormat,
+        width, height, // width, height of the image
+        0, // border, always 0
+        buffer.data);
+
+      gl.compressedTexImage2D(
+        gl.TEXTURE_CUBE_MAP_POSITIVE_Y, level,
+        internalFormat,
+        width, height, // width, height of the image
+        0, // border, always 0
+        buffer.data);
+
+      gl.compressedTexImage2D(
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, level,
+        internalFormat,
+        width, height, // width, height of the image
+        0, // border, always 0
+        buffer.data);
+
+      gl.compressedTexImage2D(
+        gl.TEXTURE_CUBE_MAP_POSITIVE_Z, level,
+        internalFormat,
+        width, height, // width, height of the image
+        0, // border, always 0
+        buffer.data);
+
+      gl.compressedTexImage2D(
+        gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, level,
+        internalFormat,
+        width, height, // width, height of the image
+        0, // border, always 0
+        buffer.data);
+
+      let errorCode = gl.getError();
+      if (errorCode !== 0) {
+        console.log('renderingError, WebGL Error Code: ' + errorCode);
+      }
+
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+    }, undefined, function (error) {
+      console.error(error);
+    });
+  },
+
   loadCubeMapImage: function (layerColorTexture, src, faceOffset) {
+    var gl = this.el.sceneEl.renderer.getContext();
+    // var cubefaceTextures;
+
+    // dont flip the pixels as we load them into the texture buffer.
+    // TEXTURE_CUBE_MAP expects the Y to be flipped for the faces and it already
+    // is flipped in our texture image.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, layerColorTexture);
+
+    // if (!src.complete || this.loadingScreen) {
+    //   cubefaceTextures = this.loadingScreenImages;
+    //   return;
+    // } else {
+    //   cubefaceTextures = this.generateCubeMapTextures(src, faceOffset);
+    // }
+
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+      0,
+      0, 0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      src,
+    );
+
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+      0,
+      0, 0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      src,
+    );
+
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+      0,
+      0, 0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      src,
+    );
+
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+      0,
+      0, 0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      src,
+    );
+
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      0,
+      0, 0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      src,
+    );
+
+    gl.texSubImage2D(
+      gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+      0,
+      0, 0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      src,
+    );
+
+    // this.el.sceneEl.skipRender = true;
+    // this.el.sceneEl.pause();
+    var errorCode = gl.getError();
+    if (errorCode !== 0) {
+      console.log('renderingError, WebGL Error Code: ' + errorCode);
+    }
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+  },
+
+  loadCubeMapImageOld: function (layerColorTexture, src, faceOffset) {
     var gl = this.el.sceneEl.renderer.getContext();
     var cubefaceTextures;
 
