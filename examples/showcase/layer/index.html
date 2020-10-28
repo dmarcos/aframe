@@ -5,33 +5,22 @@
     <title>Compositor Layer Example • A-Frame</title>
     <meta name="description" content="Hello, World! • A-Frame">
     <script src="../../../dist/aframe-master.js"></script>
-    <script src="https://unpkg.com/aframe-environment-component@1.1.0/dist/aframe-environment-component.min.js"></script>
-    <script src="page-turn.js"></script>
-    <script src="button.js"></script>
+    <script src="page-controls.js"></script>
   </head>
   <body>
-    <a-scene environment="preset: forest" raycaster="objects: [button];" cursor="rayOrigin: mouse">
+    <a-scene background="color: #d471aa">
       <a-assets>
-        <video id="bunny" autoplay preload="auto" loop crossorigin="anonymous" width="1920" height="1080">
-          <source src="bunny.mp4"></source>
-        </video>
-        <img id="panel1" crossOrigin="anonymous" src="panel1.png">
-        <img id="panel2" crossOrigin="anonymous" src="panel2.png">
-        <img id="ghibli" crossOrigin="anonymous" src="ghibli.jpg">
+        <img id="page1" crossOrigin="anonymous" src="page1.jpg">
+        <img id="page2" crossOrigin="anonymous" src="page2.jpg">
+        <img id="page3" crossOrigin="anonymous" src="page3.jpg">
+        <img id="page4" crossOrigin="anonymous" src="page4.jpg">
+        <img id="page5" crossOrigin="anonymous" src="page5.jpg">
       </a-assets>
       <a-entity
-        layer="src: #panel1"
+        layer="src: #page1"
         position="0 1.8 -1.5"></a-entity>
-      <a-entity
-        rotation="0 80 0"
-        position="-1.6 1.8 0.2"
-        material="shader: flat; src: #panel1"
-        geometry="primitive: plane; width: 1.920; height: 1.038"></a-entity>
-      <a-entity laser-controls="hand: left" raycaster="objects: [button]"></a-entity>
-      <a-entity laser-controls="hand: right" raycaster="objects: [button]"></a-entity>
-
-      <a-entity page-turn="direction: forward" id="nextButton" button="label: Next" position="0.5 1.1 -1.5"></a-entity>
-      <a-entity page-turn="direction: backward" id="previousButton"button="label: Previous" position="-0.5 1.1 -1.5"></a-entity>
+      <a-entity oculus-touch-controls="hand: left" page-controls></a-entity>
+      <a-entity oculus-touch-controls="hand: right" page-controls></a-entity>
     </a-scene>
   </body>
 </html>
