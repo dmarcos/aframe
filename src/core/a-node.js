@@ -59,18 +59,6 @@ class ANode extends HTMLElement {
       mixins = this.getAttribute('mixin');
       if (mixins) { this.updateMixins(mixins); }
     }
-
-    var observerConfig = {attributes: true};
-    var observer = new MutationObserver(function callAttributeChangedCallback (mutationList) {
-      var i;
-      for (i = 0; i < mutationList.length; i++) {
-        if (mutationList[i] === 'attributes') {
-          console.log(`The ${mutationList[i].attributeName} attribute was modified.`);
-        }
-      }
-    });
-
-    observer.observe(this, observerConfig);
   }
 
   /**
@@ -144,10 +132,37 @@ class ANode extends HTMLElement {
     Promise.all(childrenLoaded).then(function emitLoaded () {
       self.hasLoaded = true;
       if (cb) { cb(); }
+      self.setupMutationObserver();
+
       self.emit('loaded', undefined, false);
     }).catch(function (err) {
       error('Failure loading node: ', err);
     });
+  }
+
+  /**
+   * With custom elements V1 attributeChangedCallback only fires
+   * for attributes defined statically via observedAttributes.
+   * One can assign any arbitrary components to an A-Frame entity
+   * hence we can't know the list of attributes beforehand.
+   * This function setup a mutation observer to keep track of the entiy attribute changes
+   * in the DOM and update components accordingly.
+   */
+  setupMutationObserver () {
+    var self = this;
+    var observerConfig = {attributes: true, attributeOldValue: true};
+    var observer = new MutationObserver(function callAttributeChangedCallback (mutationList) {
+      var i;
+      for (i = 0; i < mutationList.length; i++) {
+        if (mutationList[i].type === 'attributes') {
+          var attributeName = mutationList[i].attributeName;
+          var newValue = window.HTMLElement.prototype.getAttribute.call(self, attributeName);
+          var oldValue = mutationList[i].oldValue;
+          self.attributeChangedCallback(attributeName, oldValue, newValue);
+        }
+      }
+    });
+    observer.observe(this, observerConfig);
   }
 
   getChildren () {

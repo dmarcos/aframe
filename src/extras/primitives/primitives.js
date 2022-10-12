@@ -151,7 +151,10 @@ module.exports.registerPrimitive = function registerPrimitive (name, definition)
         console.warn(this.deprecatedMappings[attr]);
       }
 
-      if (!attr || !componentName) { return; }
+      if (!attr || !componentName) {
+        super.attributeChangedCallback(attr, oldVal, value);
+        return;
+      }
 
       // Set value.
       setComponentProperty(this, componentName, value);
