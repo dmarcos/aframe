@@ -38,7 +38,7 @@ class AAssets extends ANode {
     var imgEls;
     var timeout;
 
-    ANode.prototype.connectedCallback.call(this);
+    super.connectedCallback();
 
     if (!this.parentNode.isScene) {
       throw new Error('<a-assets> must be a child of a <a-scene>.');

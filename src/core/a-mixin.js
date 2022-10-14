@@ -27,7 +27,7 @@ class AMixin extends ANode {
   }
 
   doConnectedCallback () {
-    ANode.prototype.connectedCallback.call(this);
+    super.connectedCallback();
 
     this.sceneEl = this.closestScene();
     this.id = this.getAttribute('id');
