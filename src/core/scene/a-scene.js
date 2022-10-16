@@ -78,10 +78,8 @@ class AScene extends AEntity {
       return;
     }
 
-    this.doConnectedCallback();
-  }
+    super.connectedCallback();
 
-  doConnectedCallback () {
     var self = this;
     var embedded = this.hasAttribute('embedded');
 
@@ -91,7 +89,6 @@ class AScene extends AEntity {
     this.setAttribute('screenshot', '');
     this.setAttribute('vr-mode-ui', '');
     this.setAttribute('device-orientation-permission-ui', '');
-    super.connectedCallback();
 
     // Renderer initialization
     setupCanvas(this);

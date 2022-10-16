@@ -67,16 +67,12 @@ class AEntity extends ANode {
       return;
     }
 
-    AEntity.prototype.doConnectedCallback.call(this);
-  }
+    // ANode method.
+    super.connectedCallback();
 
-  doConnectedCallback () {
     var assetsEl;  // Asset management system element.
     var sceneEl = this.sceneEl;
     var self = this;  // Component.
-
-    // ANode method.
-    super.connectedCallback();
 
     sceneEl = this.sceneEl;
 
@@ -108,8 +104,6 @@ class AEntity extends ANode {
     var componentName;
 
     if (!this.parentEl) { return; }
-
-    super.disconnectedCallback();
 
     // Remove components.
     for (componentName in this.components) {

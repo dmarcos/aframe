@@ -25,10 +25,6 @@ class AAssets extends ANode {
       return;
     }
 
-    this.doConnectedCallback();
-  }
-
-  doConnectedCallback () {
     var self = this;
     var i;
     var loaded = [];
