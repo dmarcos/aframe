@@ -119,7 +119,7 @@ class AEntity extends ANode {
     if (this.isScene) { return; }
 
     this.removeFromParent();
-    super.disconnectedCallback.call(this);
+    super.disconnectedCallback();
 
     // Remove cyclic reference.
     this.object3D.el = null;

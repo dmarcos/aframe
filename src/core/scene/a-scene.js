@@ -200,7 +200,7 @@ class AScene extends AEntity {
   disconnectedCallback () {
     // Remove from scene index.
     var sceneIndex = scenes.indexOf(this);
-    super.disconnectedCallback.call(this);
+    super.disconnectedCallback();
 
     scenes.splice(sceneIndex, 1);
 

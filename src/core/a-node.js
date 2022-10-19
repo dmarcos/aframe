@@ -39,7 +39,7 @@ class ANode extends HTMLElement {
       document.addEventListener('DOMContentLoaded', this.connectedCallback.bind(this));
       return;
     }
-    ANode.prototype.doConnectedCallback.call(this);
+    this.doConnectedCallback();
   }
 
   doConnectedCallback () {
