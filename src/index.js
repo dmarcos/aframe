@@ -1,11 +1,7 @@
 // Polyfill `Promise`.
 window.Promise = window.Promise || require('promise-polyfill');
 
-// Custom Elements v1 polyfill
-if (!window.customElements) {
-  const customElementsPolyfill = require('@webreflection/custom-elements');
-  customElementsPolyfill(window || global);
-}
+require('@ungap/custom-elements');
 
 // WebVR polyfill
 // Check before the polyfill runs.
