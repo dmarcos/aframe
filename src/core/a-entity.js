@@ -67,7 +67,7 @@ class AEntity extends ANode {
       return;
     }
 
-    this.doConnectedCallback();
+    AEntity.prototype.doConnectedCallback.call(this);
   }
 
   doConnectedCallback () {
