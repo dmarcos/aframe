@@ -78,6 +78,10 @@ class AScene extends AEntity {
       return;
     }
 
+    this.doConnectedCallback();
+  }
+
+  doConnectedCallback () {
     super.connectedCallback();
 
     var self = this;
